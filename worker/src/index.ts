@@ -8,6 +8,9 @@ const FEEDS = {
   alerts: { file: 'alerts', normalize: normalizeAlerts },
 } as const;
 const FRESH_SECONDS = 30;
+/** Copia de respaldo en KV como mucho cada 5 min por feed: el plan gratuito permite 1 000 escrituras/día. */
+const BACKUP_SECONDS = 300;
+const lastBackup: Record<string, number> = {};
 
 function json(data: unknown, env: Env, cache = 'public, max-age=60', status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -30,7 +33,13 @@ async function realtime(kind: keyof typeof FEEDS, env: Env, ctx: ExecutionContex
     const raw = (await r.json()) as any;
     const body = { updatedAt: Number(raw?.header?.timestamp) || Math.floor(Date.now() / 1000), stale: false, data: feed.normalize(raw) };
     const res = json(body, env, `public, max-age=${FRESH_SECONDS}`);
-    ctx.waitUntil(Promise.all([cache.put(key, res.clone()), env.DATA.put(`rt:${kind}`, JSON.stringify(body))]));
+    const tasks: Promise<unknown>[] = [cache.put(key, res.clone())];
+    const now = Date.now() / 1000;
+    if (now - (lastBackup[kind] ?? 0) > BACKUP_SECONDS) {
+      lastBackup[kind] = now;
+      tasks.push(env.DATA.put(`rt:${kind}`, JSON.stringify(body)));
+    }
+    ctx.waitUntil(Promise.all(tasks));
     return res;
   } catch {
     const last = await env.DATA.get(`rt:${kind}`, 'json') as { updatedAt: number; data: unknown } | null;
