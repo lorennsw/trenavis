@@ -1,0 +1,13 @@
+name = "trenavis-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+account_id = "26daaf7d50d86f84e8b2d985db7012a0"
+
+# KV "trenavis-data"
+[[kv_namespaces]]
+binding = "DATA"
+id = "c27f8eab03c845a0a0b1036c21aa1b72"
+
+[vars]
+# Origen permitido para CORS (tu GitHub Pages). "*" solo para desarrollo.
+ALLOWED_ORIGIN = "*"
