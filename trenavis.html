@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>TrenAvís · trenes y alarmas</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: práctico y rápido, de bolsillo; claro como un panel de andén
+   IDEA: panel de salidas + billete del tren que sigues
+   PICTURE: el tren que sigues con su recorrido parada a parada; tablas de salidas grandes
+   COLOUR and TYPE: franja cobalto, blanco, negro, zonas #eef2ff, rojo alarma; Space Grotesk + Inter
+   LAYOUT: una columna móvil, barra inferior con 5 secciones, hojas inferiores para textos */
+:root{color-scheme:light dark;--bg:light-dark(#ffffff,#0a0d18);--ink:light-dark(#0b0d14,#eef1fb);--mut:light-dark(#4f5973,#a0aac6);--zone:light-dark(#eef2ff,#141a2e);--line:light-dark(#d5dbef,#262e4a);--co:#1240e0;--co2:light-dark(#0d32b5,#7b96ff);--red:light-dark(#c8180e,#ff5a4f);--ok:light-dark(#0b7a43,#3ad08a)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3,.big,.tm{font-family:"Space Grotesk",Inter,sans-serif}
+.wrap{max-width:600px;margin:0 auto;padding:0 16px 110px}
+.strip{background:var(--co);color:#fff;padding:12px 16px;position:sticky;top:0;z-index:6}
+.strip .in{max-width:600px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.strip h1{margin:0;font-size:21px}.strip small{opacity:.85;font-size:13px;display:block;line-height:1.2}
+.clock{font:600 20px "Space Grotesk";font-variant-numeric:tabular-nums}
+.ribbon{display:none;background:var(--zone);border-bottom:1px solid var(--line);padding:8px 16px;font-size:14px;cursor:pointer}
+.ribbon.show{display:block}.ribbon .in{max-width:600px;margin:0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+h2{font-size:24px;margin:20px 0 4px;line-height:1.1}
+.sub{color:var(--mut);margin:0 0 14px;font-size:15px}
+h3{font-size:18px;margin:18px 0 8px}
+section[hidden]{display:none}
+.chip{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:2px 9px;font:600 13px Inter;white-space:nowrap}
+.ln{color:#fff;border-radius:6px;padding:1px 7px}
+.st-ok{color:var(--ok)}.st-late{color:var(--red);font-weight:600}.st-can{color:var(--red);font-weight:700;text-decoration:line-through}
+.warn{background:var(--red);color:#fff}
+.okc{color:var(--ok);border:1px solid currentColor}
+button,select,input{font:inherit;font-size:16px;color:inherit}
+.btn{min-height:44px;border:0;border-radius:12px;padding:0 16px;background:var(--zone);font-weight:600;cursor:pointer}
+.btn.pri{background:var(--co);color:#fff}
+.btn.sm{min-height:38px;font-size:14px;padding:0 12px;background:transparent;border:1px solid var(--line)}
+.btn.dan{background:transparent;border:1px solid var(--red);color:var(--red)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+:focus-visible{outline:3px solid var(--co2);outline-offset:2px}
+select,input[type=time],input[type=number]{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--bg)}
+label.f{display:block;font-size:14px;font-weight:600;margin:12px 0 6px}
+.row{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;background:var(--zone);border-radius:12px;padding:4px;gap:4px}
+.seg button{min-height:40px;border:0;border-radius:9px;background:transparent;font-size:15px;font-weight:600;cursor:pointer;color:var(--mut)}
+.seg button[aria-pressed=true]{background:var(--bg);color:var(--ink);box-shadow:0 1px 3px rgb(0 0 0/.15)}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+.fl{min-height:36px;border-radius:999px;border:1px solid var(--line);background:var(--bg);padding:0 12px;font-size:14px;font-weight:600;cursor:pointer}
+.fl[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.sw{width:52px;height:32px;border-radius:999px;border:0;background:var(--line);position:relative;cursor:pointer;flex:none}
+.sw::after{content:"";position:absolute;top:4px;left:4px;width:24px;height:24px;border-radius:50%;background:#fff;transition:left .18s}
+.sw[aria-checked=true]{background:var(--co)}.sw[aria-checked=true]::after{left:24px}
+.set{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line)}
+.set small{display:block;color:var(--mut);font-size:13px}
+/* tablas de salidas y resultados */
+.board{border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.tr{display:grid;grid-template-columns:62px minmax(0,1fr) auto;gap:10px;align-items:center;padding:11px 12px;border-bottom:1px solid var(--line)}
+.tr:last-child{border-bottom:0}
+.tr:nth-child(even){background:var(--zone)}
+.tm{font-weight:600;font-size:20px;font-variant-numeric:tabular-nums;white-space:nowrap}
+.tr .dst{font-weight:600;line-height:1.25}.tr .dst small{display:block;font-weight:400;color:var(--mut);font-size:13px}
+.tr .rt{text-align:right;font-size:14px;white-space:nowrap}
+.res{border:1px solid var(--line);border-radius:16px;padding:12px 14px;margin-bottom:10px}
+.res .top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.res .tms{display:flex;align-items:baseline;gap:8px;font-size:15px;color:var(--mut)}
+.res .tms .tm{color:var(--ink)}
+.res .bot{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:8px;flex-wrap:wrap;font-size:14px}
+.empty{border:2px dashed var(--line);border-radius:16px;padding:26px 18px;text-align:center;color:var(--mut)}
+/* mi tren */
+.hero{background:var(--zone);border-radius:20px;padding:18px 16px}
+.big{font-size:clamp(38px,11vw,54px);font-weight:700;line-height:1.02;margin:4px 0 6px;font-variant-numeric:tabular-nums}
+.big em{font-style:normal;color:var(--co2)}
+.hero p{margin:0;color:var(--mut)}
+.route{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;font-size:15px;margin-top:4px}
+.stops{list-style:none;margin:16px 0 0;padding:0;position:relative}
+.stops li{display:grid;grid-template-columns:22px minmax(0,1fr) auto;gap:10px;align-items:center;padding:6px 0;position:relative}
+.stops li::before{content:"";position:absolute;left:10px;top:0;bottom:0;width:3px;background:var(--line)}
+.stops li:first-child::before{top:50%}.stops li:last-child::before{bottom:50%}
+.stops li.done::before{background:var(--co)}
+.dot{width:14px;height:14px;border-radius:50%;border:3px solid var(--line);background:var(--bg);margin-left:4px;position:relative;z-index:1}
+.done .dot{border-color:var(--co);background:var(--co)}
+.here .dot{width:20px;height:20px;margin-left:1px;border-color:var(--co);box-shadow:0 0 0 6px rgb(18 64 224/.2)}
+.key{font-weight:700}
+.stops .t{font-variant-numeric:tabular-nums;white-space:nowrap;font-size:15px}
+.stops .faded{color:var(--mut)}
+/* alarmas */
+.tk{border:1px solid var(--line);border-radius:16px;margin-bottom:12px;overflow:hidden}
+.tk.off{opacity:.55}
+.tk-top{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;padding:14px 14px 10px}
+.tk h4{margin:0;font-size:17px;line-height:1.25}.tk h4 b{color:var(--mut);font-weight:500}
+.meta{color:var(--mut);font-size:14px;margin-top:4px}
+.tk-bot{border-top:1px dashed var(--line);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));background:var(--zone)}
+.tk-bot div{padding:10px 12px}.tk-bot small{display:block;color:var(--mut);font-size:12px}
+.acts{display:flex;gap:6px;padding:8px 10px;border-top:1px solid var(--line);flex-wrap:wrap}
+.days{display:flex;gap:4px;margin-top:8px;flex-wrap:wrap}
+.d{width:24px;height:24px;border-radius:50%;display:grid;place-items:center;font:600 11px Inter;background:var(--zone);color:var(--mut)}
+.d.on{background:var(--ink);color:var(--bg)}
+.dps{display:flex;gap:6px;flex-wrap:wrap}
+.dp{width:42px;height:42px;border-radius:50%;border:1px solid var(--line);background:var(--bg);font-weight:600;cursor:pointer}
+.dp[aria-pressed=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.prev{background:var(--zone);border-radius:14px;padding:12px 14px;margin-top:14px;font-size:15px}
+/* líneas y menú */
+.lineh{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:12px 0;cursor:pointer;min-height:56px}
+.lineh span.n{flex:1;font-weight:600}
+.lineb{padding:6px 0 12px 8px;font-size:14px;color:var(--mut)}
+.menu a,.menu button.mi{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:52px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;text-decoration:none;font-weight:500;cursor:pointer;padding:0 2px;text-align:left}
+.menu .mi::after{content:"›";color:var(--mut);font-size:22px}
+.note{font-size:13px;color:var(--mut);margin:14px 0}
+.tchip{min-height:36px;border:1px solid var(--line);border-radius:999px;background:var(--bg);padding:0 10px;font:600 13px Inter;cursor:pointer;display:inline-flex;gap:6px;align-items:center;color:var(--ink)}
+.stops li.trn{grid-template-columns:22px minmax(0,1fr);padding:4px 0}
+.stops li.trn .tl{display:flex;flex-wrap:wrap;gap:6px}
+.stops li.trn::before{background:repeating-linear-gradient(var(--co) 0 6px,transparent 6px 10px)}
+.stops li.ride>span:nth-child(2){font-weight:600}
+.stops li.out>span:nth-child(2),.stops li.out .t{color:var(--mut)}
+.tr[data-tr]{cursor:pointer}
+.info{background:var(--zone);border-radius:14px;padding:10px 12px;font-size:15px;margin:8px 0 4px}
+/* barra inferior */
+nav.tabs{position:fixed;bottom:0;left:0;right:0;background:var(--bg);border-top:1px solid var(--line);z-index:7;padding-bottom:env(safe-area-inset-bottom)}
+nav.tabs .in{max-width:600px;margin:0 auto;display:grid;grid-template-columns:repeat(5,minmax(0,1fr))}
+nav.tabs a{display:flex;flex-direction:column;align-items:center;gap:2px;padding:8px 2px 9px;font-size:12px;font-weight:600;color:var(--mut);text-decoration:none;min-height:56px}
+nav.tabs a svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+nav.tabs a[aria-current=page]{color:var(--co2)}
+/* hojas y avisos */
+.ov{position:fixed;inset:0;background:rgb(5 8 20/.55);display:none;align-items:flex-end;justify-content:center;z-index:10}
+.ov.show{display:flex}
+.sheet{background:var(--bg);width:100%;max-width:600px;max-height:92vh;overflow:auto;border-radius:22px 22px 0 0;padding:18px 16px 26px}
+.sheet h3{margin:0 0 10px;font-size:22px}
+.sheet .legal h4{margin:16px 0 4px;font-size:16px}.sheet .legal p,.sheet .legal li{font-size:15px;color:var(--ink)}
+.foot{display:flex;gap:10px;margin-top:18px}.foot .btn{flex:1}
+.toast{position:fixed;top:10px;left:50%;transform:translate(-50%,-150%);width:min(94vw,440px);background:#0b0d14;color:#fff;border-radius:16px;padding:12px 14px;display:flex;gap:12px;align-items:flex-start;z-index:20;box-shadow:0 12px 30px rgb(0 0 0/.35);transition:transform .35s cubic-bezier(.2,.9,.3,1.2)}
+.toast.show{transform:translate(-50%,0)}
+.toast i{flex:none;width:36px;height:36px;border-radius:10px;background:var(--co);display:grid;place-items:center;font-style:normal;font-weight:700}
+.toast b{display:block}.toast span{font-size:14px;opacity:.85}
+.consent{position:fixed;left:8px;right:8px;bottom:calc(66px + env(safe-area-inset-bottom));max-width:584px;margin:0 auto;background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:14px;z-index:8;box-shadow:0 10px 30px rgb(0 0 0/.18);font-size:14px}
+.consent p{margin:0 0 10px}.consent .foot{margin-top:0}
+.consent[hidden]{display:none}
+@media(prefers-reduced-motion:reduce){.toast,.sw::after{transition:none}}
+</style>
+</head>
+<body>
+<header class="strip"><div class="in"><div><h1>TrenAvís</h1><small>App no oficial · datos de ejemplo</small></div><div class="clock" id="clock" aria-label="Hora actual">--:--</div></div></header>
+<div class="ribbon" id="ribbon" role="button" tabindex="0"><div class="in" id="ribbonIn"></div></div>
+
+<main class="wrap">
+<!-- MI TREN -->
+<section id="s-mitren" aria-labelledby="h-mitren">
+  <h2 id="h-mitren">Mi tren</h2>
+  <p class="sub">El tren que vas a coger, en directo, parada a parada.</p>
+  <div id="track"></div>
+</section>
+
+<!-- VIAJE -->
+<section id="s-viaje" hidden aria-labelledby="h-viaje">
+  <h2 id="h-viaje">Buscar trayecto</h2>
+  <p class="sub">Elige de dónde a dónde y te enseño todos los trenes.</p>
+  <label class="f" for="vFrom">Desde</label><select id="vFrom"></select>
+  <div style="display:flex;justify-content:flex-end;margin-top:6px"><button class="btn sm" id="vSwap" type="button">⇅ Invertir</button></div>
+  <label class="f" for="vTo">Hasta</label><select id="vTo"></select>
+  <div class="row"><div><label class="f" for="vTime">Salir a partir de</label><input type="time" id="vTime"></div>
+  <div><label class="f" for="vSort">Ordenar por</label><select id="vSort"><option value="dep">Hora de salida</option><option value="dur">Más rápido</option></select></div></div>
+  <div class="filters" id="vLines" aria-label="Filtrar por línea"></div>
+  <div class="filters"><button class="fl" id="vHide" aria-pressed="false">Ocultar cancelados</button><button class="fl" id="vOnTime" aria-pressed="false">Solo a su hora</button><button class="fl" id="vNow">Ahora</button></div>
+  <div id="vRes" aria-live="polite"></div>
+</section>
+
+<!-- ESTACIÓN -->
+<section id="s-estacion" hidden aria-labelledby="h-estacion">
+  <h2 id="h-estacion">Salidas y llegadas</h2>
+  <p class="sub">El panel de la estación, como el del andén.</p>
+  <label class="f" for="eSt">Estación</label><select id="eSt"></select>
+  <div style="margin-top:12px" class="seg" id="eMode"><button data-m="dep" aria-pressed="true">Salidas</button><button data-m="arr" aria-pressed="false">Llegadas</button></div>
+  <div class="filters" id="eLines" aria-label="Filtrar por línea"></div>
+  <div id="eBoard" aria-live="polite"></div>
+</section>
+
+<!-- ALARMAS -->
+<section id="s-alarmas" hidden aria-labelledby="h-alarmas">
+  <h2 id="h-alarmas">Alarmas</h2>
+  <p class="sub">Tus trayectos de siempre: te aviso cuándo salir de casa.</p>
+  <button class="btn pri" id="aAdd" style="width:100%;margin-bottom:14px">+ Nueva alarma</button>
+  <div id="aList"></div>
+</section>
+
+<!-- MÁS -->
+<section id="s-mas" hidden aria-labelledby="h-mas">
+  <h2 id="h-mas">Más</h2>
+  <h3>Líneas</h3>
+  <div id="mLines"></div>
+  <h3>Avisos</h3>
+  <div class="set"><div>Retrasos del tren que sigo<small>Si cambia el retraso o se cancela</small></div><button class="sw" role="switch" id="pDelay" aria-label="Avisos de retraso"></button></div>
+  <div class="set"><div>Alarmas de salida<small>Cuándo salir de casa</small></div><button class="sw" role="switch" id="pAlarm" aria-label="Avisos de alarmas"></button></div>
+  <div class="set"><div>Notificaciones del sistema<small id="permTxt">Pide permiso al móvil</small></div><button class="btn sm" id="perm">Activar</button></div>
+  <h3>Legal y privacidad</h3>
+  <div class="menu">
+    <button class="mi" data-lg="aviso">Aviso legal</button>
+    <button class="mi" data-lg="privacidad">Política de privacidad</button>
+    <button class="mi" data-lg="cookies">Cookies y almacenamiento</button>
+    <button class="mi" data-lg="terminos">Términos de uso</button>
+    <button class="mi" data-lg="accesibilidad">Accesibilidad</button>
+    <button class="mi" data-lg="fuentes">Fuentes de datos y licencias</button>
+  </div>
+  <h3>Tus datos</h3>
+  <div class="menu">
+    <button class="mi" id="exp">Copiar mis datos (exportar)</button>
+    <button class="mi" id="del" style="color:var(--red)">Borrar todos mis datos</button>
+  </div>
+  <p class="note">TrenAvís es gratis y no tiene compras ni anuncios. Prototipo con horarios de ejemplo: no son reales. App no oficial, sin relación con Renfe ni con la Generalitat.</p>
+</section>
+</main>
+
+<nav class="tabs" aria-label="Secciones"><div class="in">
+  <a href="#mitren" data-t="mitren"><svg viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="14" rx="3"/><path d="M5 11h14M9 21l-2-4M15 21l2-4"/><circle cx="9" cy="14" r=".6"/><circle cx="15" cy="14" r=".6"/></svg>Mi tren</a>
+  <a href="#viaje" data-t="viaje"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg>Buscar</a>
+  <a href="#estacion" data-t="estacion"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2"/><path d="M7 9h6M7 13h10M12 17v3"/></svg>Estación</a>
+  <a href="#alarmas" data-t="alarmas"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="7"/><path d="M12 9v4l2 2M5 4 3 6M19 4l2 2"/></svg>Alarmas</a>
+  <a href="#mas" data-t="mas"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg>Más</a>
+</div></nav>
+
+<div class="consent" id="consent" hidden role="region" aria-label="Aviso de privacidad">
+  <p><b>Tu privacidad, sin letra pequeña.</b> TrenAvís guarda tus alarmas y ajustes solo en este móvil. No usamos cookies de publicidad ni de seguimiento, así que no hay nada que aceptar o rechazar.</p>
+  <div class="foot"><button class="btn sm" data-lg="privacidad">Leer la política</button><button class="btn pri" id="consentOk">Entendido</button></div>
+</div>
+
+<div class="ov" id="ovA" role="dialog" aria-modal="true" aria-labelledby="fT">
+  <form class="sheet" id="form">
+    <h3 id="fT">Nueva alarma</h3>
+    <label class="f" for="fFrom">Desde</label><select id="fFrom"></select>
+    <label class="f" for="fTo">Hasta</label><select id="fTo"></select>
+    <label class="f">Qué te importa</label>
+    <div class="seg" id="fMode"><button type="button" data-m="arr" aria-pressed="true">Llegar antes de</button><button type="button" data-m="dep" aria-pressed="false">Salir después de</button></div>
+    <div class="row"><div><label class="f" for="fTime" id="tLbl">Hora de llegada</label><input type="time" id="fTime" value="09:00" required></div>
+    <div><label class="f" for="fWalk">Min. hasta la estación</label><input type="number" id="fWalk" min="0" max="120" value="10" inputmode="numeric"></div></div>
+    <label class="f">Días</label>
+    <div class="dps" id="dps"></div>
+    <div class="filters" id="fPresets"><button type="button" class="fl" data-p="0,1,2,3,4">Lunes a viernes</button><button type="button" class="fl" data-p="0,1,2,3,4,5,6">Todos los días</button><button type="button" class="fl" data-p="5,6">Fin de semana</button></div>
+    <label class="f" for="fPre">Avisarme</label>
+    <select id="fPre"><option value="0">Justo cuando tenga que salir</option><option value="5" selected>5 min antes de salir</option><option value="10">10 min antes de salir</option><option value="15">15 min antes de salir</option></select>
+    <div class="prev" id="prev"></div>
+    <div class="foot"><button type="button" class="btn" id="fCancel">Cancelar</button><button type="submit" class="btn pri" id="fSave">Guardar</button></div>
+  </form>
+</div>
+<div class="ov" id="ovL" role="dialog" aria-modal="true" aria-labelledby="lT">
+  <div class="sheet"><h3 id="lT"></h3><div class="legal" id="lB"></div><div class="foot"><button class="btn pri" id="lClose">Cerrar</button></div></div>
+</div>
+<div class="ov" id="ovC" role="dialog" aria-modal="true" aria-labelledby="cT">
+  <div class="sheet"><h3 id="cT"></h3><p id="cB"></p><div class="foot"><button class="btn" id="cNo">Cancelar</button><button class="btn dan" id="cYes">Sí, borrar</button></div></div>
+</div>
+<div class="ov" id="ovX" role="dialog" aria-modal="true" aria-labelledby="xT">
+  <div class="sheet"><h3 id="xT" tabindex="-1"></h3><div id="xB"></div><div class="foot"><button class="btn" id="xClose">Cerrar</button></div></div>
+</div>
+<div class="toast" id="toast" role="status"><i>T</i><div><b id="tTitle"></b><span id="tBody"></span></div></div>
+
+<script>
+{
+const DAYS=['L','M','X','J','V','S','D'],DAYN=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+// Horarios de EJEMPLO: [estación, minutos desde cabecera]; f = frecuencia en minutos
+const LINES=[
+ {id:'R1',c:'#2f6fd6',f:15,st:[['Molins de Rei',0],["L'Hospitalet de Llobregat",14],['Barcelona Sants',19],['Plaça de Catalunya',23],['Arc de Triomf',26],['Badalona',36],['El Masnou',44],['Mataró',55],['Arenys de Mar',64],['Calella',76],['Blanes',90]]},
+ {id:'R2',c:'#1d9a55',f:20,st:[['Aeroport',0],['El Prat de Llobregat',6],['Bellvitge',11],['Barcelona Sants',17],['Passeig de Gràcia',22],['Clot-Aragó',26],['Sant Andreu Comtal',30],['Montcada i Reixac',36],['Mollet-Sant Fost',42],['Granollers Centre',51],['Cardedeu',58]]},
+ {id:'R3',c:'#d0352b',f:30,st:[["L'Hospitalet de Llobregat",0],['Barcelona Sants',5],['Plaça de Catalunya',9],['Arc de Triomf',12],['La Sagrera',16],['Montcada Bifurcació',24],['La Garriga',45],['Vic',75]]},
+ {id:'R4',c:'#b07a00',f:20,st:[['Sant Vicenç de Calders',0],['Vilafranca del Penedès',22],['Martorell',40],['Molins de Rei',50],["L'Hospitalet de Llobregat",62],['Barcelona Sants',67],['Plaça de Catalunya',71],['Arc de Triomf',74],['Sant Andreu Arenal',80],['Cerdanyola del Vallès',92],['Sabadell Centre',103],['Terrassa Est',112],['Manresa',140]]}
+];
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const fmt=m=>{m=((Math.round(m)%1440)+1440)%1440;return pad(Math.floor(m/60))+':'+pad(m%60)};
+const toMin=t=>{const [h,m]=(t||'00:00').split(':').map(Number);return h*60+m};
+const nowMin=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
+const todayIdx=()=>(new Date().getDay()+6)%7;
+const hash=s=>{let x=7;for(const c of s)x=(x*31+c.charCodeAt(0))|0;return Math.abs(x)};
+const lineChip=l=>`<span class="ln" style="background:${l.c}">${esc(l.id)}</span>`;
+
+// Construir todos los trenes del día
+const TRAINS=[],BYID={};
+for(const l of LINES){const end=l.st[l.st.length-1][1];
+ for(const dir of [1,-1]){for(let s=dir>0?300:310;s<=1410;s+=l.f){
+  const seq=dir>0?l.st:[...l.st].reverse();
+  const stops=seq.map(([n,t])=>({n,t:s+(dir>0?t:end-t)}));
+  const id=`${l.id}-${dir>0?'A':'B'}-${s}`;
+  const tr={id,line:l,stops,num:(+l.id.slice(1))*10000+(dir>0?0:5000)+s,dest:stops[stops.length-1].n,orig:stops[0].n};
+  TRAINS.push(tr);BYID[id]=tr;}}}
+const STATIONS=[...new Set(LINES.flatMap(l=>l.st.map(s=>s[0])))].sort((a,b)=>a.localeCompare(b,'es'));
+
+// Estado simulado (en la app real: GTFS-Realtime)
+let extra={};
+function status(tr){
+  const h=hash(tr.id);
+  if(extra[tr.id]===-1||h%41===0)return {can:true,delay:0};
+  const base=h%10<6?0:2+h%12;
+  return {can:false,delay:base+(extra[tr.id]||0)};
+}
+const stTxt=s=>s.can?'<span class="st-can">Cancelado</span>':s.delay?`<span class="st-late">+${s.delay} min</span>`:'<span class="st-ok">A su hora</span>';
+const idx=(tr,n)=>tr.stops.findIndex(s=>s.n===n);
+
+// Guardado local (solo en este dispositivo)
+const LS='trenavis2';
+let S;
+try{S=JSON.parse(localStorage.getItem(LS)||'null')}catch(e){S=null}
+if(!S||typeof S!=='object')S={};
+S={consent:false,pDelay:true,pAlarm:true,track:null,search:{from:'Granollers Centre',to:'Passeig de Gràcia'},station:'Barcelona Sants',alarms:[
+ {id:1,from:'Granollers Centre',to:'Passeig de Gràcia',mode:'arr',time:'09:00',walk:12,pre:5,days:[0,1,2,3,4],on:true},
+ {id:2,from:'Passeig de Gràcia',to:'Granollers Centre',mode:'dep',time:'17:30',walk:6,pre:0,days:[0,1,2,3,4],on:true}],...S};
+const save=()=>{try{localStorage.setItem(LS,JSON.stringify(S))}catch(e){}};
+
+// Avisos
+function notify(title,body){
+  $('tTitle').textContent=title;$('tBody').textContent=body;
+  $('toast').classList.add('show');clearTimeout(notify.t);notify.t=setTimeout(()=>$('toast').classList.remove('show'),6500);
+  try{if('Notification' in window&&Notification.permission==='granted')new Notification(title,{body})}catch(e){}
+  try{navigator.vibrate&&navigator.vibrate([200,100,200])}catch(e){}
+}
+
+// ---------- BUSCAR ----------
+let vLines=new Set(),vHide=false,vOnTime=false;
+const opts=STATIONS.map(s=>`<option>${esc(s)}</option>`).join('');
+for(const id of ['vFrom','vTo','eSt','fFrom','fTo'])$(id).innerHTML=opts;
+$('vFrom').value=S.search.from;$('vTo').value=S.search.to;$('vTime').value=fmt(nowMin());
+$('vLines').innerHTML=LINES.map(l=>`<button class="fl" data-l="${l.id}" aria-pressed="false">${esc(l.id)}</button>`).join('');
+$('eLines').innerHTML=$('vLines').innerHTML;
+function trips(from,to,after){
+  return TRAINS.map(tr=>{const a=idx(tr,from),b=idx(tr,to);if(a<0||b<0||a>=b)return null;return {tr,dep:tr.stops[a].t,arr:tr.stops[b].t}}).filter(x=>x&&x.dep>=after);
+}
+function renderSearch(){
+  const from=$('vFrom').value,to=$('vTo').value;S.search={from,to};save();
+  if(from===to){$('vRes').innerHTML='<div class="empty">Elige dos estaciones distintas.</div>';return}
+  let r=trips(from,to,toMin($('vTime').value)).map(x=>({...x,s:status(x.tr)}));
+  if(vLines.size)r=r.filter(x=>vLines.has(x.tr.line.id));
+  if(vHide)r=r.filter(x=>!x.s.can);
+  if(vOnTime)r=r.filter(x=>!x.s.can&&!x.s.delay);
+  if($('vSort').value==='dur')r.sort((a,b)=>(a.arr-a.dep)-(b.arr-b.dep)||a.dep-b.dep);
+  r=r.slice(0,15);
+  $('vRes').innerHTML=r.length?`<p class="sub">${r.length} trenes directos · ${esc(from)} → ${esc(to)}</p>`+r.map(x=>{const tk=S.track&&S.track.id===x.tr.id;return `<div class="res">
+   <div class="top">${lineChip(x.tr.line)}<div class="tms"><span class="tm">${fmt(x.dep)}</span>→<span class="tm">${fmt(x.arr)}</span><span>${x.arr-x.dep} min</span></div></div>
+   <div class="bot"><span>Tren ${x.tr.num} · dirección ${esc(x.tr.dest)} · ${stTxt(x.s)}</span>
+   <span style="display:flex;gap:6px"><button class="btn sm" data-tr="${x.tr.id}" data-f="${esc(from)}" data-to="${esc(to)}">Recorrido</button><button class="btn ${tk?'':'pri'} sm" style="${tk?'':'border:0;color:#fff;background:var(--co)'}" data-go="${x.tr.id}" ${x.s.can?'disabled':''}>${tk?'Siguiendo ✓':'Voy en este'}</button></span></div></div>`}).join('')
+   :'<div class="empty">No hay trenes directos con estos filtros. Prueba otra hora, quita filtros o elige otra estación.</div>';
+}
+['vFrom','vTo','vTime','vSort'].forEach(id=>$(id).addEventListener('input',renderSearch));
+$('vSwap').onclick=()=>{const f=$('vFrom').value;$('vFrom').value=$('vTo').value;$('vTo').value=f;renderSearch()};
+$('vLines').onclick=e=>{const l=e.target.dataset.l;if(!l)return;vLines.has(l)?vLines.delete(l):vLines.add(l);e.target.setAttribute('aria-pressed',vLines.has(l));renderSearch()};
+$('vHide').onclick=e=>{vHide=!vHide;e.target.setAttribute('aria-pressed',vHide);renderSearch()};
+$('vOnTime').onclick=e=>{vOnTime=!vOnTime;e.target.setAttribute('aria-pressed',vOnTime);renderSearch()};
+$('vNow').onclick=()=>{$('vTime').value=fmt(nowMin());renderSearch()};
+$('vRes').onclick=e=>{const id=e.target.dataset.go;if(!id)return;
+  S.track={id,from:$('vFrom').value,to:$('vTo').value,last:null};checkTrack();location.hash='mitren';
+  notify('Siguiendo tu tren','Te avisaré si se retrasa o se cancela.');};
+
+// ---------- ESTACIÓN ----------
+let eMode='dep',eLines=new Set();
+$('eSt').value=S.station;
+function renderBoard(){
+  const st=$('eSt').value,n=nowMin();S.station=st;save();
+  let rows=TRAINS.map(tr=>{const i=idx(tr,st);if(i<0)return null;if(eMode==='dep'&&i===tr.stops.length-1)return null;if(eMode==='arr'&&i===0)return null;return {tr,t:tr.stops[i].t,s:status(tr)}})
+   .filter(x=>x&&x.t+x.s.delay>=n-1);
+  if(eLines.size)rows=rows.filter(x=>eLines.has(x.tr.line.id));
+  rows.sort((a,b)=>a.t-b.t);rows=rows.slice(0,18);
+  $('eBoard').innerHTML=rows.length?`<p class="sub">Toca un tren para ver todas sus paradas.</p><div class="board">${rows.map(x=>`<div class="tr" data-tr="${x.tr.id}" data-f="${esc(eMode==='dep'?st:x.tr.orig)}" data-to="${esc(eMode==='dep'?x.tr.dest:st)}" role="button" tabindex="0"><span class="tm">${fmt(x.t)}</span>
+   <div class="dst">${lineChip(x.tr.line)} ${esc(eMode==='dep'?x.tr.dest:x.tr.orig)}<small>${eMode==='dep'?'Destino':'Procedencia'} · tren ${x.tr.num} · vía ${1+hash(x.tr.id)%4}</small></div>
+   <div class="rt">${stTxt(x.s)}${x.s.delay&&!x.s.can?`<br><span class="tm" style="font-size:15px">${fmt(x.t+x.s.delay)}</span>`:''}</div></div>`).join('')}</div>`
+   :'<div class="empty">No quedan trenes hoy con estos filtros.</div>';
+}
+$('eSt').addEventListener('input',renderBoard);
+$('eMode').onclick=e=>{const m=e.target.dataset.m;if(!m)return;eMode=m;for(const b of $('eMode').children)b.setAttribute('aria-pressed',b.dataset.m===m);renderBoard()};
+$('eLines').onclick=e=>{const l=e.target.dataset.l;if(!l)return;eLines.has(l)?eLines.delete(l):eLines.add(l);e.target.setAttribute('aria-pressed',eLines.has(l));renderBoard()};
+
+// ---------- MI TREN ----------
+function renderTrack(){
+  const t=S.track,tr=t&&BYID[t.id];
+  if(!tr){$('track').innerHTML=`<div class="empty">Aún no sigues ningún tren.<br><br><a class="btn pri" href="#viaje" style="display:inline-flex;align-items:center;text-decoration:none">Buscar un trayecto</a></div>`;$('ribbon').classList.remove('show');return}
+  const s=status(tr),n=nowMin(),a=idx(tr,t.from),b=idx(tr,t.to);
+  const dep=tr.stops[a].t+s.delay,arr=tr.stops[b].t+s.delay;
+  let head,line;
+  if(s.can){head='Tren <em>cancelado</em>';line='Busca otro tren en «Buscar».'}
+  else if(n<dep){head=`Sale en <em>${dep-n} min</em>`;line=`A las ${fmt(dep)} desde ${esc(t.from)}`}
+  else if(n<arr){head=`Llegas en <em>${arr-n} min</em>`;line=`A las ${fmt(arr)} a ${esc(t.to)}`}
+  else{head='Has <em>llegado</em>';line=`${esc(t.to)} · ${fmt(arr)}`}
+  const seg=tr.stops.slice(a,b+1);
+  let cur=-1;seg.forEach((x,i)=>{if(x.t+s.delay<=n)cur=i});
+  $('track').innerHTML=`<div class="hero"><p>${lineChip(tr.line)} Tren ${tr.num} · dirección ${esc(tr.dest)}</p>
+   <div class="big">${head}</div><div class="route"><span>${line}</span>${s.can?'<span class="chip warn">Cancelado</span>':s.delay?`<span class="chip warn">+${s.delay} min</span>`:'<span class="chip okc">A su hora</span>'}</div>
+   <ol class="stops">${seg.map((x,i)=>`<li class="${i<cur?'done':''} ${i===cur?'done here':''}"><span class="dot"></span><span class="${i===0||i===seg.length-1?'key':''}">${esc(x.n)}</span>
+    <span class="t">${s.delay&&!s.can?`<s class="faded">${fmt(x.t)}</s> <b class="st-late">${fmt(x.t+s.delay)}</b>`:fmt(x.t)}</span></li>`).join('')}</ol></div>
+   <div class="set"><div>Avisarme si se retrasa<small>También si lo cancelan</small></div><button class="sw" role="switch" aria-checked="${S.pDelay}" id="tDelay" aria-label="Avisos de retraso"></button></div>
+   <div class="filters"><button class="btn pri sm" style="border:0;color:#fff;background:var(--co)" data-tr="${tr.id}" data-f="${esc(t.from)}" data-to="${esc(t.to)}">Recorrido completo</button><button class="btn sm" data-ln="${tr.line.id}" data-dir="${tr.id.includes('-A-')?1:-1}">Línea en directo</button></div>
+   <div class="filters"><button class="btn sm" id="tSim">Simular retraso</button><button class="btn sm" id="tCan">Simular cancelación</button><button class="btn sm" id="tFix">Volver a la normalidad</button><button class="btn dan sm" id="tStop">Dejar de seguir</button></div>`;
+  $('ribbonIn').innerHTML=`${lineChip(tr.line)} <b>${fmt(dep)}</b> ${esc(t.from)} → ${esc(t.to)} · ${stTxt(s)}`;
+  $('ribbon').classList.toggle('show',location.hash.slice(1)!=='mitren'&&location.hash!=='');
+}
+function checkTrack(){
+  const t=S.track,tr=t&&BYID[t.id];if(!tr)return;
+  const s=status(tr),key=s.can?'can':String(s.delay);
+  if(t.last!==null&&t.last!==key&&S.pDelay){
+    const dep=tr.stops[idx(tr,t.from)].t+s.delay;
+    if(s.can)notify('Tu tren está cancelado',`${tr.line.id} de las ${fmt(tr.stops[idx(tr,t.from)].t)} · busca una alternativa`);
+    else if(s.delay)notify(`Tu tren va con +${s.delay} min`,`${tr.line.id} desde ${t.from}: nueva salida a las ${fmt(dep)}`);
+    else notify('Tu tren vuelve a ir a su hora',`${tr.line.id} sale a las ${fmt(dep)} desde ${t.from}`);
+  }
+  t.last=key;save();
+}
+$('track').addEventListener('click',e=>{
+  const t=S.track;if(!t)return;
+  if(e.target.id==='tSim'){extra[t.id]=(extra[t.id]>0?extra[t.id]:0)+4+Math.floor(Math.random()*7)}
+  else if(e.target.id==='tCan')extra[t.id]=-1;
+  else if(e.target.id==='tFix'){const h=hash(t.id);delete extra[t.id];if(h%41===0)return}
+  else if(e.target.id==='tStop'){S.track=null;save();renderAll();return}
+  else if(e.target.id==='tDelay'){S.pDelay=!S.pDelay;save();renderAll();return}
+  else return;
+  checkTrack();renderAll();
+});
+$('ribbon').onclick=()=>location.hash='mitren';
+$('ribbon').onkeydown=e=>{if(e.key==='Enter')location.hash='mitren'};
+
+// ---------- ALARMAS ----------
+function best(a){
+  const t=toMin(a.time),list=trips(a.from,a.to,0).filter(x=>!status(x.tr).can);
+  const x=a.mode==='arr'?[...list].reverse().find(x=>x.arr<=t):list.find(x=>x.dep>=t);
+  if(!x)return null;const d=status(x.tr).delay;
+  return {...x,delay:d,leave:x.dep+d-a.walk,notify:x.dep+d-a.walk-a.pre};
+}
+function renderAlarms(){
+  $('aList').innerHTML=S.alarms.length?S.alarms.map(a=>{const p=best(a);return `<article class="tk ${a.on?'':'off'}">
+   <div class="tk-top"><div><h4>${esc(a.from)} <b>→</b> ${esc(a.to)}</h4>
+    <div class="meta">${a.mode==='arr'?'Llegar antes de las ':'Salir después de las '}${esc(a.time)} · ${a.walk} min a pie</div>
+    <div class="days" aria-label="Días">${DAYS.map((d,i)=>`<span class="d ${a.days.includes(i)?'on':''}" title="${DAYN[i]}">${d}</span>`).join('')}</div></div>
+    <button class="sw" role="switch" aria-checked="${a.on}" aria-label="Activar alarma" data-tg="${a.id}"></button></div>
+   ${p?`<div class="tk-bot"><div><small>Aviso</small><span class="tm">${fmt(p.notify)}</span></div><div><small>Sal de casa</small><span class="tm ${p.delay?'st-late':''}">${fmt(p.leave)}</span></div><div><small>${lineChip(p.tr.line)} Tren</small><span class="tm ${p.delay?'st-late':''}">${fmt(p.dep+p.delay)}</span></div></div>`
+     :'<div class="tk-bot" style="grid-template-columns:1fr"><div>No hay tren directo a esa hora.</div></div>'}
+   <div class="acts"><button class="btn sm" data-ed="${a.id}">Editar</button><button class="btn sm" data-ts="${a.id}">Probar aviso</button><button class="btn sm" data-del="${a.id}">Borrar</button></div></article>`}).join('')
+   :'<div class="empty">Aún no tienes alarmas. Pulsa «Nueva alarma».</div>';
+}
+let editing=null,fMode='arr',fDays=[0,1,2,3,4];
+const paintDays=()=>{$('dps').innerHTML=DAYS.map((d,i)=>`<button type="button" class="dp" aria-pressed="${fDays.includes(i)}" data-d="${i}" aria-label="${DAYN[i]}">${d}</button>`).join('')};
+const paintMode=()=>{for(const b of $('fMode').children)b.setAttribute('aria-pressed',b.dataset.m===fMode);$('tLbl').textContent=fMode==='arr'?'Hora de llegada':'Hora de salida'};
+const draft=()=>({from:$('fFrom').value,to:$('fTo').value,mode:fMode,time:$('fTime').value||'09:00',walk:Math.max(0,+$('fWalk').value||0),pre:+$('fPre').value,days:[...fDays].sort()});
+function preview(){
+  const a=draft();if(a.from===a.to){$('prev').textContent='Elige dos estaciones distintas.';$('fSave').disabled=true;return}
+  const p=best(a);$('fSave').disabled=!p||!a.days.length;
+  $('prev').innerHTML=p?`Mejor tren: ${lineChip(p.tr.line)} sale a las <b>${fmt(p.dep)}</b> y llega a las <b>${fmt(p.arr)}</b> (${p.arr-p.dep} min).<br>Sal de casa a las <b class="tm">${fmt(p.leave)}</b> · aviso a las <b>${fmt(p.notify)}</b>${a.days.length?'':'<br>Elige al menos un día.'}`:'No hay tren directo a esa hora. Prueba otra hora o estación.';
+}
+function openForm(a){
+  editing=a?a.id:null;$('fT').textContent=a?'Editar alarma':'Nueva alarma';
+  const d=a||{from:S.search.from,to:S.search.to,mode:'arr',time:'09:00',walk:10,pre:5,days:[0,1,2,3,4]};
+  $('fFrom').value=d.from;$('fTo').value=d.to;fMode=d.mode;$('fTime').value=d.time;$('fWalk').value=d.walk;$('fPre').value=d.pre;fDays=[...d.days];
+  paintMode();paintDays();preview();$('ovA').classList.add('show');$('fFrom').focus();
+}
+$('aAdd').onclick=()=>openForm();
+$('fCancel').onclick=()=>$('ovA').classList.remove('show');
+$('fMode').onclick=e=>{const m=e.target.dataset.m;if(m){fMode=m;paintMode();preview()}};
+$('dps').onclick=e=>{const d=e.target.dataset.d;if(d===undefined)return;const i=+d;fDays=fDays.includes(i)?fDays.filter(x=>x!==i):[...fDays,i];paintDays();preview()};
+$('fPresets').onclick=e=>{const p=e.target.dataset.p;if(p){fDays=p.split(',').map(Number);paintDays();preview()}};
+['fFrom','fTo','fTime','fWalk','fPre'].forEach(id=>$(id).addEventListener('input',preview));
+$('form').onsubmit=e=>{e.preventDefault();const a=draft();if(a.from===a.to||!a.days.length||!best(a))return;
+  if(editing)Object.assign(S.alarms.find(x=>x.id===editing),a);else S.alarms.push({id:Date.now(),on:true,...a});
+  save();renderAll();$('ovA').classList.remove('show')};
+$('aList').onclick=e=>{const t=e.target.closest('button');if(!t)return;const f=v=>S.alarms.find(a=>a.id===+v);
+  if(t.dataset.tg){const a=f(t.dataset.tg);a.on=!a.on;save();renderAll()}
+  else if(t.dataset.ed)openForm(f(t.dataset.ed));
+  else if(t.dataset.ts){const a=f(t.dataset.ts),p=best(a);if(p)alarmNotify(a,p)}
+  else if(t.dataset.del){if(t.dataset.sure){S.alarms=S.alarms.filter(a=>a.id!==+t.dataset.del);save();renderAll()}else{t.dataset.sure=1;t.textContent='¿Seguro? Toca otra vez';t.style.color='var(--red)'}}};
+const alarmNotify=(a,p)=>notify(a.pre?`Sal de casa en ${a.pre} min`:'¡Sal ya de casa!',`${p.tr.line.id} de las ${fmt(p.dep+p.delay)} · ${a.from} → ${a.to}${p.delay?` (+${p.delay} min)`:''}`);
+let fired={};
+function checkAlarms(){if(!S.pAlarm)return;const n=nowMin(),k=new Date().toDateString();
+  for(const a of S.alarms){if(!a.on||!a.days.includes(todayIdx()))continue;const p=best(a);if(p&&p.notify===n&&!fired[a.id+k]){fired[a.id+k]=1;alarmNotify(a,p)}}}
+
+// ---------- MÁS ----------
+function renderMas(){
+  $('mLines').innerHTML=LINES.map(l=>{const late=TRAINS.filter(t=>t.line===l&&status(t).delay>0).length,all=TRAINS.filter(t=>t.line===l).length;
+   return `<details><summary class="lineh" style="list-style:none">${lineChip(l)}<span class="n">${esc(l.st[0][0])} – ${esc(l.st[l.st.length-1][0])}</span><span style="font-size:14px">${late/all>.45?'<span class="st-late">Retrasos</span>':'<span class="st-ok">Normal</span>'}</span></summary>
+   <div class="lineb">Cada ${l.f} min aprox. · ${l.st.length} estaciones<br>${l.st.map(s=>esc(s[0])).join(' · ')}<br><button class="btn sm" style="margin-top:8px" data-ln="${l.id}" data-dir="1">Ver trenes en directo</button></div></details>`}).join('');
+  $('pDelay').setAttribute('aria-checked',S.pDelay);$('pAlarm').setAttribute('aria-checked',S.pAlarm);
+}
+$('pDelay').onclick=()=>{S.pDelay=!S.pDelay;save();renderAll()};
+$('pAlarm').onclick=()=>{S.pAlarm=!S.pAlarm;save();renderAll()};
+$('perm').onclick=async()=>{try{if(!('Notification' in window))throw 0;const r=await Notification.requestPermission();$('permTxt').textContent=r==='granted'?'Activadas':'Denegadas: avisos solo dentro de la app'}catch(e){$('permTxt').textContent='No disponible aquí: avisos dentro de la app'}};
+$('exp').onclick=async()=>{const data=JSON.stringify({alarmas:S.alarms,trenSeguido:S.track,ajustes:{pDelay:S.pDelay,pAlarm:S.pAlarm}},null,2);
+  try{await navigator.clipboard.writeText(data);notify('Datos copiados','Tus datos están en el portapapeles en formato JSON.')}catch(e){openLegal('Tus datos','<pre style="white-space:pre-wrap;font-size:13px">'+esc(data)+'</pre>')}};
+$('del').onclick=()=>{$('cT').textContent='¿Borrar todos tus datos?';$('cB').textContent='Se borrarán tus alarmas, el tren que sigues y tus ajustes de este dispositivo. No se puede deshacer.';$('ovC').classList.add('show')};
+$('cNo').onclick=()=>$('ovC').classList.remove('show');
+$('cYes').onclick=()=>{try{localStorage.removeItem(LS)}catch(e){}S={consent:true,pDelay:true,pAlarm:true,track:null,search:S.search,station:S.station,alarms:[]};save();$('ovC').classList.remove('show');renderAll();notify('Datos borrados','No queda nada tuyo guardado en este dispositivo.')};
+
+const LEGAL={
+ aviso:['Aviso legal',`<p>En cumplimiento de la Ley 34/2002 de servicios de la sociedad de la información (LSSI):</p>
+  <ul><li><b>Titular:</b> pendiente de completar (nombre o razón social)</li><li><b>NIF:</b> pendiente</li><li><b>Domicilio:</b> pendiente</li><li><b>Contacto:</b> pendiente (correo electrónico)</li></ul>
+  <h4>Qué es TrenAvís</h4><p>Una app independiente de consulta de horarios y avisos de trenes de cercanías. No es una app oficial y no tiene relación con Renfe, Adif ni la Generalitat de Catalunya. Los nombres de líneas y estaciones se usan solo para identificar el servicio.</p>
+  <h4>Precio</h4><p>Gratis. Sin compras dentro de la app, sin suscripciones y sin anuncios.</p>`],
+ privacidad:['Política de privacidad',`<p><b>Resumen:</b> no pedimos registro, nombre, correo ni ubicación. Tus alarmas y ajustes se guardan solo en tu dispositivo.</p>
+  <h4>Responsable</h4><p>El titular indicado en el Aviso legal.</p>
+  <h4>Qué datos tratamos</h4><ul><li>Alarmas (estaciones, horas, días) y el tren que sigues: guardados en tu dispositivo.</li><li>Si activas las notificaciones push en la versión final: un identificador técnico de suscripción, necesario para enviarte avisos. Se borra al desactivarlas.</li></ul>
+  <h4>Para qué y con qué base</h4><p>Solo para darte el servicio que pides (art. 6.1.b del RGPD). No hacemos perfiles, no vendemos datos y no usamos publicidad.</p>
+  <h4>Terceros</h4><p>No usamos herramientas de analítica ni de publicidad. El proveedor de alojamiento y el servicio de notificaciones actúan como encargados del tratamiento.</p>
+  <h4>Edad</h4><p>No recogemos datos personales. Si en el futuro se añadieran cuentas, se exigirá tener 14 años o más o el consentimiento de los padres (LOPDGDD, art. 7).</p>
+  <h4>Tus derechos</h4><p>Puedes exportar o borrar tus datos en Más › Tus datos, y ejercer tus derechos de acceso, rectificación, supresión, oposición y portabilidad escribiendo al contacto del Aviso legal. También puedes reclamar ante la Agencia Española de Protección de Datos (aepd.es).</p>`],
+ cookies:['Cookies y almacenamiento',`<p>TrenAvís no usa cookies de publicidad, de analítica ni de seguimiento.</p><p>Solo usa el almacenamiento local del navegador o del dispositivo para recordar tus alarmas, el tren que sigues y tus ajustes. Es técnicamente necesario para que la app funcione, así que no requiere consentimiento (art. 22.2 LSSI). Puedes borrarlo cuando quieras en Más › Tus datos.</p><p>Si algún día se añadieran cookies no necesarias, se pedirá permiso antes, con los botones de aceptar y rechazar igual de visibles.</p>`],
+ terminos:['Términos de uso',`<h4>El servicio</h4><p>TrenAvís muestra horarios y estados a partir de datos abiertos de terceros. Hacemos lo posible por que sean correctos, pero <b>pueden contener errores, retrasos o faltar trenes</b>. Comprueba siempre la información oficial en la estación antes de viajar.</p>
+  <h4>Responsabilidad</h4><p>No nos hacemos responsables de trenes perdidos, retrasos o daños derivados del uso de la información. Las notificaciones pueden llegar tarde o no llegar por causas del dispositivo o de la red.</p>
+  <h4>Uso correcto</h4><p>No está permitido usar la app para fines ilegales ni intentar dañarla. Los avisos de usuarios, si se añaden, deberán ser veraces y respetuosos.</p>
+  <h4>Cambios</h4><p>Podemos actualizar estos términos y avisaremos dentro de la app. Legislación aplicable: española.</p>`],
+ accesibilidad:['Accesibilidad',`<p>Queremos que TrenAvís sea usable por todo el mundo, siguiendo las pautas WCAG 2.1 nivel AA:</p><ul><li>Contraste de color suficiente, en modo claro y oscuro.</li><li>Todo se puede usar con teclado y con lector de pantalla.</li><li>El estado de los trenes no se indica solo con color: también con texto.</li><li>Botones de al menos 44 px.</li><li>Se respeta la preferencia de reducir animaciones.</li></ul><p>Si encuentras una barrera, escríbenos al contacto del Aviso legal.</p>`],
+ fuentes:['Fuentes de datos y licencias',`<p><b>Este prototipo usa horarios inventados.</b></p><p>En la versión final, los horarios y el estado en tiempo real vendrán de los datos abiertos de Renfe (data.renfe.com), publicados con licencia Creative Commons Atribución 4.0. Datos: Renfe. La información se muestra adaptada y puede diferir de la oficial.</p><p>Tipografías: Space Grotesk e Inter (SIL Open Font License). Iconos: dibujados para esta app.</p>`]
+};
+function openLegal(t,h){$('lT').textContent=t;$('lB').innerHTML=h;$('ovL').classList.add('show');$('lClose').focus()}
+document.addEventListener('click',e=>{const k=e.target.dataset&&e.target.dataset.lg;if(k&&LEGAL[k])openLegal(...LEGAL[k])});
+$('lClose').onclick=()=>$('ovL').classList.remove('show');
+for(const o of ['ovA','ovL','ovC'])$(o).addEventListener('click',e=>{if(e.target.id===o)$(o).classList.remove('show')});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')for(const o of ['ovA','ovL','ovC','ovX'])$(o).classList.remove('show')});
+$('consent').hidden=!!S.consent;
+$('consentOk').onclick=()=>{S.consent=true;save();$('consent').hidden=true};
+
+// ---------- RECORRIDO DE UN TREN ----------
+let sheetFn=null;
+function pos(tr){const s=status(tr),n=nowMin();let cur=-1;tr.stops.forEach((x,i)=>{if(x.t+s.delay<=n)cur=i});
+  const at=cur>=0&&n-(tr.stops[cur].t+s.delay)<1;return {s,n,cur,at}}
+function openSheet(fn){sheetFn=fn;fn();$('ovX').classList.add('show');const sh=document.querySelector('#ovX .sheet');sh.scrollTop=0;$('xT').focus({preventScroll:true})}
+function openTrain(id,from,to){openSheet(()=>{
+  const tr=BYID[id];if(!tr)return;const {s,cur,at}=pos(tr),L=tr.stops.length;
+  const a=from?idx(tr,from):-1,b=to?idx(tr,to):-1,hasSeg=a>=0&&b>a;
+  const where=s.can?'Este tren está cancelado.':cur<0?`Aún no ha salido. Sale de ${esc(tr.orig)} a las ${fmt(tr.stops[0].t+s.delay)}.`
+   :cur>=L-1?`Ha llegado a ${esc(tr.dest)}.`:at?`Ahora está en <b>${esc(tr.stops[cur].n)}</b>.`:`Ahora va entre <b>${esc(tr.stops[cur].n)}</b> y <b>${esc(tr.stops[cur+1].n)}</b>.`;
+  $('xT').innerHTML=`${lineChip(tr.line)} Tren ${tr.num}`;
+  $('xB').innerHTML=`<p class="sub" style="margin:0">${esc(tr.orig)} → ${esc(tr.dest)} · ${stTxt(s)}</p><div class="info">${where}</div>
+   <ol class="stops">${tr.stops.map((x,i)=>{const cls=[i<=cur&&!s.can?'done':'',i===cur&&at&&!s.can?'here':'',hasSeg&&i>=a&&i<=b?'ride':'',hasSeg&&(i<a||i>b)?'out':''].join(' ');
+    const row=`<li class="${cls}"><span class="dot"></span><span>${esc(x.n)}${hasSeg&&i===a?' · subes':''}${hasSeg&&i===b?' · bajas':''}</span>
+     <span class="t">${s.can?`<s class="faded">${fmt(x.t)}</s>`:s.delay?`<s class="faded">${fmt(x.t)}</s> <b class="st-late">${fmt(x.t+s.delay)}</b>`:fmt(x.t)}</span></li>`;
+    const mov=i===cur&&!at&&!s.can&&cur<L-1?`<li class="trn done"><span></span><span class="tl"><span class="chip ln" style="background:${tr.line.c}">Aquí va el tren</span></span></li>`:'';
+    return row+mov}).join('')}</ol>
+   <div class="filters">${hasSeg&&!s.can?`<button class="btn pri" data-go2="${tr.id}" data-f="${esc(from)}" data-to="${esc(to)}">${S.track&&S.track.id===tr.id?'Siguiendo ✓':'Voy en este'}</button>`:''}
+   <button class="btn sm" data-ln="${tr.line.id}" data-dir="${tr.id.includes('-A-')?1:-1}">Ver la línea en directo</button></div>`;
+})}
+// ---------- LÍNEA EN DIRECTO ----------
+function openLine(lid,dir){openSheet(()=>{
+  const l=LINES.find(x=>x.id===lid),tag=dir>0?'-A-':'-B-';
+  const seq=(dir>0?l.st:[...l.st].reverse()).map(s=>s[0]);
+  const atSt={},btw={};let count=0;
+  for(const tr of TRAINS){if(tr.line!==l||!tr.id.includes(tag))continue;const p=pos(tr);if(p.s.can||p.cur<0||p.cur>=tr.stops.length-1&&!p.at)continue;
+    count++;const k=p.cur;(p.at?atSt:btw)[k]=[...((p.at?atSt:btw)[k]||[]),{tr,d:p.s.delay}]}
+  const chips=arr=>arr.map(x=>`<button class="tchip" data-tr="${x.tr.id}">${x.tr.num}${x.d?` <span class="st-late">+${x.d}</span>`:''}</button>`).join('');
+  $('xT').innerHTML=`${lineChip(l)} En directo`;
+  $('xB').innerHTML=`<div class="seg"><button data-ln="${l.id}" data-dir="1" aria-pressed="${dir>0}">Hacia ${esc(l.st[l.st.length-1][0])}</button><button data-ln="${l.id}" data-dir="-1" aria-pressed="${dir<0}">Hacia ${esc(l.st[0][0])}</button></div>
+   <p class="sub" style="margin:10px 0 0">${count} trenes circulando ahora · toca uno para ver su recorrido</p>
+   <ol class="stops">${seq.map((n,i)=>`<li class="${atSt[i]?'here done':''}"><span class="dot"></span><span>${esc(n)}</span><span class="t">${atSt[i]?`<span class="tl">${chips(atSt[i])}</span>`:''}</span></li>`
+    +(btw[i]?`<li class="trn"><span></span><span class="tl">${chips(btw[i])}</span></li>`:'')).join('')}</ol>`;
+})}
+$('xClose').onclick=()=>{$('ovX').classList.remove('show');sheetFn=null};
+$('ovX').addEventListener('click',e=>{if(e.target.id==='ovX'){$('ovX').classList.remove('show');sheetFn=null}});
+document.addEventListener('click',e=>{
+  const t=e.target.closest('[data-tr],[data-ln],[data-go2]');if(!t)return;
+  if(t.dataset.go2){S.track={id:t.dataset.go2,from:t.dataset.f,to:t.dataset.to,last:null};checkTrack();$('ovX').classList.remove('show');sheetFn=null;location.hash='mitren';renderAll();notify('Siguiendo tu tren','Te avisaré si se retrasa o se cancela.')}
+  else if(t.dataset.ln)openLine(t.dataset.ln,+t.dataset.dir||1);
+  else if(t.dataset.tr)openTrain(t.dataset.tr,t.dataset.f||'',t.dataset.to||'');
+});
+document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.matches('.tr[data-tr]'))e.target.click()});
+
+// ---------- NAVEGACIÓN ----------
+const TABS=['mitren','viaje','estacion','alarmas','mas'];
+function route(){
+  let t=location.hash.slice(1);if(!TABS.includes(t))t='mitren';
+  for(const x of TABS){$('s-'+x).hidden=x!==t;document.querySelector(`nav a[data-t="${x}"]`).toggleAttribute('aria-current',x===t);if(x===t)document.querySelector(`nav a[data-t="${x}"]`).setAttribute('aria-current','page')}
+  renderAll();window.scrollTo(0,0);
+}
+function renderAll(){$('clock').textContent=fmt(nowMin());renderTrack();renderSearch();renderBoard();renderAlarms();renderMas()}
+addEventListener('hashchange',route);
+checkTrack();route();
+setInterval(()=>{checkTrack();checkAlarms();renderAll();if(sheetFn&&$('ovX').classList.contains('show'))sheetFn()},15000);
+}
+</script>
+</body>
+</html>
