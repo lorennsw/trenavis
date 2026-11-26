@@ -1,0 +1,19 @@
+name: Actualizar datos GTFS
+on:
+  schedule: [{ cron: '17 4 * * *' }]
+  workflow_dispatch:
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npm run data:build
+      - run: npm run data:quality
+      - run: npx tsx tools/make-kv-bulk.ts
+      - run: npx wrangler kv bulk put data/out/kv-bulk.json --binding DATA --config worker/wrangler.toml --remote
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}

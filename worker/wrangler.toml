@@ -1,0 +1,12 @@
+name = "trenavis-api"
+main = "src/index.ts"
+compatibility_date = "2025-01-01"
+
+# Crea el KV con:  npx wrangler kv namespace create DATA   y pega aquí el id.
+[[kv_namespaces]]
+binding = "DATA"
+id = "REEMPLAZAR_CON_EL_ID_DEL_KV"
+
+[vars]
+# Origen permitido para CORS (tu GitHub Pages). "*" solo para desarrollo.
+ALLOWED_ORIGIN = "*"
