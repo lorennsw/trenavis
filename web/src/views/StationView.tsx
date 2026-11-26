@@ -5,7 +5,7 @@ import { board, destination, hasService, origin } from '../core/timetable';
 import { fmt } from '../core/time';
 import { t } from '../i18n';
 import { StationPicker } from '../components/StationPicker';
-import { LineChip } from '../components/LineChip';
+import { LineBadge } from '../components/LineBadge';
 import { LineFilter } from '../components/LineFilter';
 
 export function StationView() {
@@ -24,8 +24,10 @@ export function StationView() {
     <>
       <section className="card">
         <div className="stationrow">
-          <div><StationPicker label={t('station.station')} value={station} onChange={(s) => { setStation(s); setLines(new Set()); setLimit(20); }} /></div>
-          {station && <button className="btn sm icon star" aria-pressed={isFav} aria-label={isFav ? t('station.fav.remove') : t('station.fav.add')} title={isFav ? t('station.fav.remove') : t('station.fav.add')} onClick={() => toggleFavorite(station)}>{isFav ? '★' : '☆'}</button>}
+          <div><StationPicker variant="hero" label={t('station.station')} value={station} onChange={(s) => { setStation(s); setLines(new Set()); setLimit(20); }} /></div>
+          {station && <button className="btn icon star big" aria-pressed={isFav} aria-label={isFav ? t('station.fav.remove') : t('station.fav.add')} title={isFav ? t('station.fav.remove') : t('station.fav.add')} onClick={() => toggleFavorite(station)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6.1L12 16.8l-5.4 2.9 1.1-6.1-4.5-4.2 6.1-.8z" /></svg>
+          </button>}
         </div>
         <div className="seg" style={{ marginTop: 16 }} role="group">
           <button aria-pressed={mode === 'dep'} onClick={() => setMode('dep')}>{t('station.dep')}</button>
@@ -40,15 +42,19 @@ export function StationView() {
           : !rows.length ? <p className="empty">{t('station.none')}</p>
           : <>
               <p className="sub">{t('station.tap')}</p>
-              <div className="board">
+              <div className="pboard">
+                <div className="phead" aria-hidden="true">
+                  <span>{t('station.col.time')}</span><span>{mode === 'dep' ? t('station.toDest') : t('station.fromOrig')}</span><span>{t('station.col.line')}</span>
+                </div>
                 {rows.map((r) => {
-                  const other = mode === 'dep' ? destination(r.run) : origin(r.run);
+                  const other = name(mode === 'dep' ? destination(r.run) : origin(r.run));
                   return (
-                    <button key={r.run.key} className="tr" onClick={() => openTrain(r.run, now.date, mode === 'dep' ? station : undefined, mode === 'arr' ? station : undefined)}>
-                      <span className="tm">{fmt(r.time)}</span>
-                      <span className="dst"><LineChip id={r.run.trip.l} /> {name(other)}
-                        <small>{mode === 'dep' ? t('station.toDest') : t('station.fromOrig')} · {t('common.train', { n: r.run.num })}</small></span>
-                      <span className="rt">{t('common.scheduled')}</span>
+                    <button key={r.run.key} className="prow"
+                      aria-label={`${fmt(r.time)}, ${r.run.trip.l}, ${mode === 'dep' ? t('station.toDest') : t('station.fromOrig')} ${other}, ${t('common.train', { n: r.run.num })}, ${t('common.scheduled').toLowerCase()}`}
+                      onClick={() => openTrain(r.run, now.date, mode === 'dep' ? station : undefined, mode === 'arr' ? station : undefined)}>
+                      <span className="ptm">{fmt(r.time)}</span>
+                      <span className="pdst"><b>{other}</b><small>{t('common.train', { n: r.run.num })} · {t('common.scheduled').toLowerCase()}</small></span>
+                      <LineBadge id={r.run.trip.l} />
                     </button>
                   );
                 })}

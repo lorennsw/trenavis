@@ -51,7 +51,7 @@ const es = {
   'station.pick': 'Elige una estación para ver su panel.',
   'station.tap': 'Toca un tren para ver todas sus paradas.',
   'station.none': 'No quedan trenes hoy con estos filtros.',
-  'station.toDest': 'Destino', 'station.fromOrig': 'Procedencia',
+  'station.toDest': 'Destino', 'station.fromOrig': 'Procedencia', 'station.col.time': 'Hora', 'station.col.line': 'Línea',
   'train.where.notStarted': 'Aún no ha salido. Sale de {s} a las {t}.',
   'train.where.at': 'Ahora está en {s}.', 'train.where.between': 'Ahora va entre {a} y {b}.',
   'train.where.finished': 'Ha llegado a {s}.',
