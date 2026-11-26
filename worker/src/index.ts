@@ -61,10 +61,10 @@ export default {
     const { pathname } = new URL(req.url);
     const parts = pathname.replace(/^\/api\/?/, '').split('/').filter(Boolean);
 
-    if (parts[0] === 'meta' || parts[0] === 'stations' || parts[0] === 'lines') return stored(parts[0], env);
+    if (['meta', 'stations', 'lines', 'places'].includes(parts[0])) return stored(parts[0], env);
     if (parts[0] === 'trips' && /^[A-Za-z0-9]{1,5}$/.test(parts[1] ?? '')) return stored(`trips:${parts[1]}`, env);
     if (parts[0] === 'realtime' && parts[1] in FEEDS) return realtime(parts[1] as keyof typeof FEEDS, env, ctx);
-    if (parts.length === 0) return json({ name: 'trenavis-api', endpoints: ['/api/meta', '/api/stations', '/api/lines', '/api/trips/:linea', '/api/realtime/trip-updates', '/api/realtime/vehicles', '/api/realtime/alerts'] }, env);
+    if (parts.length === 0) return json({ name: 'trenavis-api', endpoints: ['/api/meta', '/api/stations', '/api/lines', '/api/places', '/api/trips/:linea', '/api/realtime/trip-updates', '/api/realtime/vehicles', '/api/realtime/alerts'] }, env);
     return json({ error: 'no encontrado' }, env, 'no-store', 404);
   },
 } satisfies ExportedHandler<Env>;

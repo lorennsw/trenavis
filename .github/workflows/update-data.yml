@@ -19,6 +19,8 @@ jobs:
       - name: Desplegar Worker
         run: npx wrangler deploy --config worker/wrangler.toml
       - run: npm run data:build
+      - name: Municipios y lugares de OpenStreetMap
+        run: npx tsx tools/build-places.ts
       - run: npm run data:quality
       - run: npx tsx tools/make-kv-bulk.ts
       - name: Subir datos al KV

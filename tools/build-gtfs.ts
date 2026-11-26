@@ -7,10 +7,11 @@
 import { mkdirSync, writeFileSync, existsSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { readCsv, toSeconds, ymdRange, weekdayOf } from './gtfs.ts';
+import { readCsv, toSeconds, ymdRange, weekdayOf, readSemicolonCsvLatin1, titleCaseTown, nearest } from './gtfs.ts';
 import type { Station, Line, Trip, TripsFile, Meta } from '../shared/types.ts';
 
 export const GTFS_URL = 'https://ssl.renfe.com/ftransit/Fichero_CER_FOMENTO/fomento_transit.zip';
+export const STATIONS_URL = 'https://ssl.renfe.com/ftransit/Fichero_estaciones/estaciones.csv';
 /** Rodalies de Catalunya = rutas cuyo route_id empieza por 51T (núcleo 4 de Cercanías). */
 export const RODALIES_PREFIX = '51T';
 
@@ -121,6 +122,18 @@ async function main() {
     for (const d of L.services.flat()) { if (d < minDate) minDate = d; if (d > maxDate) maxDate = d; }
   }
   const stations = [...usedStations].filter((s) => allStops.has(s)).sort().map((s) => allStops.get(s)!);
+  // Municipio y provincia desde el fichero de estaciones de Renfe; provincia de la estación más cercana si falta
+  const estPath = join(rawDir, 'estaciones.csv');
+  try {
+    if (!existsSync(estPath)) execFileSync('curl', ['-fsSL', '--retry', '3', '-o', estPath, STATIONS_URL], { stdio: 'inherit' });
+    const info = new Map(readSemicolonCsvLatin1(estPath).map((r) => [r.CODIGO, r]));
+    for (const s of stations) {
+      const r = info.get(s.id);
+      if (r) { s.town = titleCaseTown(r.POBLACION); s.prov = titleCaseTown(r.PROVINCIA); }
+    }
+    const known = stations.filter((s) => s.prov);
+    for (const s of stations) if (!s.prov) s.prov = nearest(s, known)?.prov;
+  } catch (e) { console.warn('Sin fichero de estaciones (municipios):', (e as Error).message); }
   writeFileSync(join(outDir, 'stations.json'), JSON.stringify(stations));
   writeFileSync(join(outDir, 'lines.json'), JSON.stringify([...lineMeta.values()].sort((a, b) => a.id.localeCompare(b.id, 'es', { numeric: true }))));
   const meta: Meta = {
