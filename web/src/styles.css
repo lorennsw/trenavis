@@ -158,3 +158,30 @@ details.opts summary b{font-weight:500;color:var(--mut)}
 input[type=text]{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--bg);font-size:1.125rem;font-variant-numeric:tabular-nums}
 input[aria-invalid=true]{border-color:var(--red)}
 details.opts>.filters:first-of-type{margin-top:0}
+
+/* ---- Panel de andén (inspirado en los paneles de estación; colores propios) ---- */
+:root{--pb:#0e1b3a;--pb2:#132550;--pbh:#0a1430;--pbt:#ffffff;--pbm:#a9c1ff;--pbl:#24335c}
+.pboard{border-radius:18px;overflow:hidden;background:var(--pb);color:var(--pbt)}
+.phead,.prow{display:grid;grid-template-columns:72px minmax(0,1fr) 64px;gap:12px;align-items:center;padding:0 14px}
+.phead{background:var(--pbh);min-height:44px;font-size:.8125rem;font-weight:700;letter-spacing:.02em}
+.phead span:last-child{text-align:center}
+.prow{width:100%;min-height:76px;border:0;border-top:1px solid var(--pbl);background:var(--pb);color:inherit;text-align:left;cursor:pointer;font:inherit}
+.prow:nth-of-type(odd){background:var(--pb2)}
+.prow:hover{filter:brightness(1.12)}
+.prow:focus-visible{outline:3px solid #fff;outline-offset:-4px}
+.ptm{font:700 1.25rem "Space Grotesk",Inter,sans-serif;font-variant-numeric:tabular-nums}
+.pdst{display:flex;flex-direction:column;gap:2px;line-height:1.2}
+.pdst b{font:700 1.125rem "Space Grotesk",Inter,sans-serif}
+.pdst small{color:var(--pbm);font-size:.8125rem}
+.lb{justify-self:center;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;width:52px;height:52px;border-radius:9px;color:#fff;line-height:.95}
+.lb b{font:700 1.375rem "Space Grotesk",Inter,sans-serif;letter-spacing:-.02em}
+.lb.two b{font-size:1.25rem}.lb small{font:700 .8125rem Inter,sans-serif}
+/* cabecera de estación */
+.picker.hero{min-height:60px;font:700 1.375rem "Space Grotesk",Inter,sans-serif;background:var(--zone);border-color:transparent;margin-top:16px}
+.picker.hero::after{content:none}
+.picker.hero svg{width:26px;height:26px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;flex:none}
+.stationrow{align-items:flex-end}
+.btn.star.big{width:60px;min-height:60px;border-radius:14px;background:transparent;border:2px solid var(--line)}
+.btn.star.big svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
+.btn.star.big[aria-pressed=true]{border-color:#c98a00;color:#c98a00}
+.btn.star.big[aria-pressed=true] svg{fill:currentColor}

@@ -19,6 +19,8 @@ interface Props {
   onChange: (id: string) => void;
   /** Si se indica, solo se muestran estas estaciones (las que tienen tren desde/hacia la otra elegida). */
   reach?: { map: Reach; note: string };
+  /** "hero": cabecera grande con el nombre de la estación y una lupa (panel de Estación). */
+  variant?: 'field' | 'hero';
 }
 
 type Near = { item: Station; km: number }[];
@@ -27,7 +29,7 @@ type Near = { item: Station; km: number }[];
  * Selector de estación: busca por estación, municipio o pueblo/barrio (OpenStreetMap), por zona,
  * o por cercanía usando la ubicación del móvil (se calcula en el propio dispositivo, no se envía a ningún sitio).
  */
-export function StationPicker({ label, value, onChange, reach }: Props) {
+export function StationPicker({ label, value, onChange, reach, variant = 'field' }: Props) {
   const { stations, places, linesByStation, favorites } = useApp();
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
@@ -86,10 +88,17 @@ export function StationPicker({ label, value, onChange, reach }: Props) {
 
   return (
     <div className="field">
-      <span className="f" id={`lbl-${label}`}>{label}</span>
-      <button className="picker" aria-labelledby={`lbl-${label}`} aria-describedby={`val-${label}`} aria-haspopup="dialog" onClick={() => setOpen(true)}>
-        <span id={`val-${label}`} className={current ? '' : 'ph'}>{current?.name ?? t('picker.choose')}</span>
-      </button>
+      {variant === 'hero' ? (
+        <button className="picker hero" aria-label={`${label}: ${current?.name ?? t('picker.choose')}`} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+          <span className={current ? '' : 'ph'}>{current?.name ?? t('picker.choose')}</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></svg>
+        </button>
+      ) : (<>
+        <span className="f" id={`lbl-${label}`}>{label}</span>
+        <button className="picker" aria-labelledby={`lbl-${label}`} aria-describedby={`val-${label}`} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+          <span id={`val-${label}`} className={current ? '' : 'ph'}>{current?.name ?? t('picker.choose')}</span>
+        </button>
+      </>)}
       {open && (
         <Sheet title={label} onClose={close}>
           <input type="search" data-autofocus aria-label={t('picker.search')} placeholder={t('picker.search')} value={q} onChange={(e) => setQ(e.target.value)} autoComplete="off" />
