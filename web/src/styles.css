@@ -152,3 +152,9 @@ details.opts summary b{font-weight:500;color:var(--mut)}
 .pn{display:flex;flex-direction:column;gap:1px;text-align:left}
 .pn small{color:var(--mut);font-size:.8125rem;font-weight:400}
 .plist .lns{flex:none;max-width:45%}.ln.more-l{background:var(--zone);color:var(--ink)}
+.when{display:flex;justify-content:space-between;align-items:flex-end;gap:12px}
+.whenval{margin:2px 0 0;font:600 1.25rem "Space Grotesk",Inter,sans-serif}
+.hint.bad{color:var(--red);font-weight:600}
+input[type=text]{width:100%;min-height:46px;border:1px solid var(--line);border-radius:12px;padding:0 12px;background:var(--bg);font-size:1.125rem;font-variant-numeric:tabular-nums}
+input[aria-invalid=true]{border-color:var(--red)}
+details.opts>.filters:first-of-type{margin-top:0}

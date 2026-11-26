@@ -149,3 +149,11 @@ describe('geografía', () => {
     expect(norm("L'Hospitalet")).toBe('l hospitalet');
   });
 });
+
+import { parseTypedTime } from '../web/src/core/time';
+describe('hora escrita a mano', () => {
+  it.each([['8:30', 510], ['08:30', 510], ['8.30', 510], ['8,30', 510], ['830', 510], ['0830', 510], ['8', 480], ['17h', 1020], ['17h5', 1025], ['23:59', 1439], ['0:00', 0], ['8:3', 510]])('%s', (s, v) => {
+    expect(parseTypedTime(s)).toBe(v);
+  });
+  it.each(['', 'abc', '24:00', '8:60', '12345', '-1'])('rechaza "%s"', (s) => expect(parseTypedTime(s)).toBeNull());
+});
