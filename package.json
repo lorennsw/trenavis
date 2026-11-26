@@ -9,14 +9,27 @@
     "data:quality": "tsx tools/quality-report.ts",
     "worker:dev": "wrangler dev --config worker/wrangler.toml",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p web",
+    "dev": "vite --config web/vite.config.ts",
+    "build": "vite build --config web/vite.config.ts",
+    "preview": "vite preview --config web/vite.config.ts"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^4.20250101.0",
     "@types/node": "^26.6.11",
+    "@types/react": "^18.3.32",
+    "@types/react-dom": "^18.3.7",
+    "@vitejs/plugin-react": "^4.7.0",
     "tsx": "^4.19.0",
     "typescript": "^5.6.0",
+    "vite": "^5.4.21",
     "vitest": "^2.1.0",
     "wrangler": "^3.90.0"
+  },
+  "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/space-grotesk": "^5.3.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
   }
 }
