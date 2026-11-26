@@ -15,16 +15,21 @@ const outDir = process.argv[2] ?? 'data/out';
 const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.kumi.systems/api/interpreter'];
 const UA = 'trenavis-data-build/1.0 (+https://github.com/lorennsw/trenavis)';
 const MAX_KM = 8;
+const START = Date.now();
+const BUDGET_MS = 8 * 60_000; // nunca más de 8 min en total: si OSM va lento, se sigue sin estos datos
+const log = (m: string) => console.log(`[${Math.round((Date.now() - START) / 1000)}s] ${m}`);
 
 async function overpass(query: string): Promise<any[]> {
   let last: unknown;
-  for (let attempt = 0; attempt < 6; attempt++) {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    const left = BUDGET_MS - (Date.now() - START);
+    if (left < 5000) throw new Error('tiempo agotado');
     const url = OVERPASS[attempt % OVERPASS.length];
     try {
-      const r = await fetch(url, { method: 'POST', headers: { 'user-agent': UA, 'content-type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(query), signal: AbortSignal.timeout(180_000) });
+      const r = await fetch(url, { method: 'POST', headers: { 'user-agent': UA, 'content-type': 'application/x-www-form-urlencoded' }, body: 'data=' + encodeURIComponent(query), signal: AbortSignal.timeout(Math.min(90_000, left)) });
       if (!r.ok) throw new Error(`${url} ${r.status}`);
       return ((await r.json()) as any).elements ?? [];
-    } catch (e) { last = e; await new Promise((ok) => setTimeout(ok, 5000 * (attempt + 1))); }
+    } catch (e) { last = e; log(`reintento ${attempt + 1}: ${(e as Error).message}`); await new Promise((ok) => setTimeout(ok, 3000 * (attempt + 1))); }
   }
   throw last;
 }
@@ -64,9 +69,13 @@ async function main() {
 
   // 1. Municipio (admin_level 8) y provincia (admin_level 6) de cada estación
   try {
-    const q = '[out:json][timeout:170];' + stations.map((s) =>
-      `make m sid="${s.id}";out;is_in(${s.lat},${s.lon})->.a;area.a[boundary=administrative][admin_level~"^(6|8)$"];out tags;`).join('');
-    const areas = assignAreas(await overpass(q));
+    const areas = new Map<string, { town?: string; prov?: string }>();
+    for (let i = 0; i < stations.length; i += 40) { // por lotes, para que cada consulta sea rápida
+      const q = '[out:json][timeout:80];' + stations.slice(i, i + 40).map((s) =>
+        `make m sid="${s.id}";out;is_in(${s.lat},${s.lon})->.a;area.a[boundary=administrative][admin_level~"^(6|8)$"];out tags;`).join('');
+      for (const [k, v] of assignAreas(await overpass(q))) areas.set(k, v);
+      log(`municipios: ${Math.min(i + 40, stations.length)}/${stations.length}`);
+    }
     let n = 0;
     for (const s of stations) {
       const a = areas.get(s.id);
@@ -85,8 +94,9 @@ async function main() {
     const steps = 3;
     for (let i = 0; i < steps; i++) for (let j = 0; j < steps; j++) {
       const bb = [s0 + (n0 - s0) * i / steps, w0 + (e0 - w0) * j / steps, s0 + (n0 - s0) * (i + 1) / steps, w0 + (e0 - w0) * (j + 1) / steps].map((x) => x.toFixed(4)).join(',');
-      els.push(...await overpass(`[out:json][timeout:120];node["place"~"^(city|town|village|suburb|quarter|neighbourhood|hamlet)$"]["name"](${bb});out;`));
+      els.push(...await overpass(`[out:json][timeout:80];node["place"~"^(city|town|village|suburb|quarter|neighbourhood|hamlet)$"]["name"](${bb});out;`));
     }
+    log(`lugares: ${els.length} en bruto`);
     const places = selectPlaces(els, stations);
     writeFileSync(join(outDir, 'places.json'), JSON.stringify(places));
     console.log(`Lugares de OSM: ${places.length}`);

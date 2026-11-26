@@ -21,6 +21,8 @@ jobs:
       - run: npm run data:build
       - name: Municipios y lugares de OpenStreetMap
         run: npx tsx tools/build-places.ts
+        timeout-minutes: 10
+        continue-on-error: true   # si OSM falla, se publica lo demás igual
       - run: npm run data:quality
       - run: npx tsx tools/make-kv-bulk.ts
       - name: Subir datos al KV
