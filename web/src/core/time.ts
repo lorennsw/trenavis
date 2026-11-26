@@ -34,3 +34,20 @@ export function addDays(ymd: string, n: number): string {
 
 export const ymdToIso = (ymd: string) => `${ymd.slice(0, 4)}-${ymd.slice(4, 6)}-${ymd.slice(6, 8)}`;
 export const isoToYmd = (iso: string) => iso.replace(/-/g, '');
+
+/**
+ * Hora escrita a mano -> minutos, o null si no se entiende.
+ * Acepta "8:30", "08:30", "8.30", "8,30", "830", "0830", "8", "17h", "17 h 5".
+ */
+export function parseTypedTime(raw: string): number | null {
+  const s = raw.trim().toLowerCase().replace(/\s+/g, '');
+  if (!s) return null;
+  let h: number, m: number;
+  let x: RegExpExecArray | null;
+  if ((x = /^(\d{1,2})[:.,h](\d{1,2})?(?:min)?$/.exec(s))) { h = +x[1]; m = x[2] ? +x[2] : 0; if (x[2]?.length === 1 && /[:.,]/.test(s)) m *= 10; }
+  else if ((x = /^(\d{1,2})h?$/.exec(s))) { h = +x[1]; m = 0; }
+  else if ((x = /^(\d{3,4})$/.exec(s))) { h = +x[1].slice(0, -2); m = +x[1].slice(-2); }
+  else return null;
+  if (h > 23 || m > 59) return null;
+  return h * 60 + m;
+}

@@ -1,6 +1,13 @@
 /** Formato compacto de datos generado por tools/build-gtfs.ts y servido por el Worker. */
 
-export interface Station { id: string; name: string; lat: number; lon: number; wc: boolean }
+export interface Station {
+  id: string; name: string; lat: number; lon: number; wc: boolean;
+  town?: string;   // municipio (fichero de estaciones de Renfe), si se conoce
+  prov?: string;   // provincia: Barcelona, Girona, Tarragona, Lleida, Zaragoza, Huesca, Teruel
+}
+
+/** Lugar de OpenStreetMap (ciudad, pueblo, barrio…) cerca de alguna estación, para buscar por localidad. */
+export interface Place { n: string; lat: number; lon: number }
 
 export interface Line {
   id: string;            // R1, R2N, RG1...

@@ -113,3 +113,47 @@ describe('tiempo', () => {
     expect(addDays('20261201', -1)).toBe('20261130');
   });
 });
+
+import { reachableFrom, reachableTo } from '../web/src/core/reach';
+import { nearestStations, norm, fmtKm } from '../web/src/core/geo';
+
+describe('estaciones alcanzables', () => {
+  it('desde A: directas por R1 y con transbordo por R2/R3 (solo en el sentido del tren)', () => {
+    const r = reachableFrom(tt, 'A');
+    expect(r.get('B')).toBe('direct');
+    expect(r.get('D')).toBe('direct');
+    expect(r.get('E')).toBe('transfer');
+    expect(r.has('A')).toBe(false);
+  });
+  it('hacia E: C y B directas; A y D con transbordo', () => {
+    const r = reachableTo(tt, 'E');
+    expect(r.get('C')).toBe('direct');
+    expect(r.get('B')).toBe('direct');
+    expect(r.get('A')).toBe('transfer');
+    expect(r.get('D')).toBe('transfer');
+  });
+  it('desde E no se llega a ninguna parte (fin de línea)', () => {
+    expect(reachableFrom(tt, 'E').size).toBe(0);
+  });
+});
+
+describe('geografía', () => {
+  it('ordena estaciones por cercanía y respeta el radio', () => {
+    const list = [{ id: 'sv', lat: 41.186, lon: 1.53 }, { id: 'cal', lat: 41.19, lon: 1.57 }, { id: 'bcn', lat: 41.38, lon: 2.14 }];
+    const r = nearestStations({ lat: 41.1816, lon: 1.523 }, list);
+    expect(r.map((x) => x.item.id)).toEqual(['sv', 'cal']);
+    expect(fmtKm(r[0].km)).toMatch(/m$/);
+  });
+  it('normaliza texto para buscar', () => {
+    expect(norm("Coma-ruga")).toBe(norm('coma ruga'));
+    expect(norm("L'Hospitalet")).toBe('l hospitalet');
+  });
+});
+
+import { parseTypedTime } from '../web/src/core/time';
+describe('hora escrita a mano', () => {
+  it.each([['8:30', 510], ['08:30', 510], ['8.30', 510], ['8,30', 510], ['830', 510], ['0830', 510], ['8', 480], ['17h', 1020], ['17h5', 1025], ['23:59', 1439], ['0:00', 0], ['8:3', 510]])('%s', (s, v) => {
+    expect(parseTypedTime(s)).toBe(v);
+  });
+  it.each(['', 'abc', '24:00', '8:60', '12345', '-1'])('rechaza "%s"', (s) => expect(parseTypedTime(s)).toBeNull());
+});

@@ -9,7 +9,7 @@ import { LineChip } from '../components/LineChip';
 import { LineFilter } from '../components/LineFilter';
 
 export function StationView() {
-  const { tt, stations, linesByStation, favorites, toggleFavorite, now, openTrain } = useApp();
+  const { tt, linesByStation, favorites, toggleFavorite, now, openTrain } = useApp();
   const [station, setStation] = usePersisted<string | null>('station', null);
   const [mode, setMode] = useState<'dep' | 'arr'>('dep');
   const [lines, setLines] = useState<Set<string>>(new Set());
@@ -22,17 +22,19 @@ export function StationView() {
 
   return (
     <>
-      <div className="stationrow">
-        <div><StationPicker label={t('station.station')} value={station} onChange={(s) => { setStation(s); setLines(new Set()); setLimit(20); }} stations={stations} linesByStation={linesByStation} favorites={favorites} /></div>
-        {station && <button className="btn sm icon star" aria-pressed={isFav} aria-label={isFav ? t('station.fav.remove') : t('station.fav.add')} title={isFav ? t('station.fav.remove') : t('station.fav.add')} onClick={() => toggleFavorite(station)}>{isFav ? '★' : '☆'}</button>}
-      </div>
-      <div className="seg" style={{ marginTop: 12 }} role="group">
-        <button aria-pressed={mode === 'dep'} onClick={() => setMode('dep')}>{t('station.dep')}</button>
-        <button aria-pressed={mode === 'arr'} onClick={() => setMode('arr')}>{t('station.arr')}</button>
-      </div>
-      <LineFilter all={stationLines} selected={lines} onChange={setLines} />
+      <section className="card">
+        <div className="stationrow">
+          <div><StationPicker label={t('station.station')} value={station} onChange={(s) => { setStation(s); setLines(new Set()); setLimit(20); }} /></div>
+          {station && <button className="btn sm icon star" aria-pressed={isFav} aria-label={isFav ? t('station.fav.remove') : t('station.fav.add')} title={isFav ? t('station.fav.remove') : t('station.fav.add')} onClick={() => toggleFavorite(station)}>{isFav ? '★' : '☆'}</button>}
+        </div>
+        <div className="seg" style={{ marginTop: 16 }} role="group">
+          <button aria-pressed={mode === 'dep'} onClick={() => setMode('dep')}>{t('station.dep')}</button>
+          <button aria-pressed={mode === 'arr'} onClick={() => setMode('arr')}>{t('station.arr')}</button>
+        </div>
+        <LineFilter all={stationLines} selected={lines} onChange={setLines} />
+      </section>
 
-      <div aria-live="polite">
+      <section aria-live="polite" className="results">
         {!station ? <p className="empty">{t('station.pick')}</p>
           : !hasService(tt, now.date) ? <p className="empty">{t('nodata.day')}</p>
           : !rows.length ? <p className="empty">{t('station.none')}</p>
@@ -51,9 +53,9 @@ export function StationView() {
                   );
                 })}
               </div>
-              {rows.length >= limit && <button className="btn more" onClick={() => setLimit(limit + 20)}>{t('common.more')}</button>}
+              {rows.length >= limit && <button className="btn wide" onClick={() => setLimit(limit + 20)}>{t('common.more')}</button>}
             </>}
-      </div>
+      </section>
     </>
   );
 }

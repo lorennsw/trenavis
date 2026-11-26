@@ -1,11 +1,12 @@
 import { createContext, useContext } from 'react';
-import type { Meta, Station } from '../../shared/types';
+import type { Meta, Place, Station } from '../../shared/types';
 import type { Timetable, Run } from './core/timetable';
 
 export interface AppData {
   tt: Timetable;
   meta: Meta;
   stations: Station[];
+  places: Place[];
   linesByStation: Map<string, string[]>;
   lineIds: string[];
   favorites: string[];
