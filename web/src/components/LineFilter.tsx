@@ -1,7 +1,7 @@
 import { t } from '../i18n';
 
 /** Filtros de línea (botones conmutables). Ninguno seleccionado = todas. */
-export function LineFilter({ all, selected, onChange }: { all: string[]; selected: Set<string>; onChange: (s: Set<string>) => void }) {
+export function LineFilter({ all, selected, onChange, plain }: { all: string[]; selected: Set<string>; onChange: (s: Set<string>) => void; plain?: boolean }) {
   const toggle = (id: string) => { const n = new Set(selected); n.has(id) ? n.delete(id) : n.add(id); onChange(n); };
   if (all.length < 2) return null;
   const chips = (
@@ -10,7 +10,7 @@ export function LineFilter({ all, selected, onChange }: { all: string[]; selecte
       {all.map((id) => <button key={id} className="fl" aria-pressed={selected.has(id)} onClick={() => toggle(id)}>{id}</button>)}
     </div>
   );
-  if (all.length <= 10) return chips;
+  if (plain || all.length <= 10) return chips;
   // Con muchas líneas, plegadas para no ocupar media pantalla
   return (
     <details className="lf">

@@ -58,12 +58,13 @@ export function App() {
 
   const data = useMemo<AppData | null>(() => {
     if (state.s !== 'ready') return null;
-    const { tt, meta } = state;
+    const { tt, meta, places } = state;
     const lbs = new Map<string, Set<string>>();
     for (const f of tt.files) for (const p of f.patterns) for (const s of p) { if (!lbs.has(s)) lbs.set(s, new Set()); lbs.get(s)!.add(f.line); }
     return {
       tt, meta,
       stations: [...tt.stations.values()],
+      places,
       linesByStation: new Map([...lbs].map(([k, v]) => [k, [...v].sort(compareLines)])),
       lineIds: tt.files.map((f) => f.line).sort(compareLines),
       favorites,
