@@ -1,7 +1,9 @@
 # Solicitud a Adif: reutilización de datos de vías (andenes)
 
 **Dónde enviarla:** por el registro electrónico de la sede electrónica de Adif (da justificante de entrada y fecha,
-que es lo que cuenta para los plazos). Si no, por el formulario de contacto de adif.es.
+que es lo que cuenta para los plazos; necesita certificado digital, DNIe o Cl@ve). Si no se tiene, por el formulario
+de contacto de adif.es (guardar captura con la fecha de envío).
+**Sin NIE:** usar el pasaporte: "con pasaporte nº [número] ([país])".
 **Antes de enviar:** rellena los campos entre corchetes.
 
 ---
@@ -10,7 +12,7 @@ que es lo que cuenta para los plazos). Si no, por el formulario de contacto de a
 
 A la atención de Adif (Administrador de Infraestructuras Ferroviarias):
 
-[Nombre y apellidos], con NIF [NIF] y domicilio a efectos de notificaciones en [dirección], y correo electrónico [correo],
+[Nombre y apellidos], con NIF/NIE [número] (o pasaporte nº [número] ([país]) si no se dispone de NIE) y domicilio a efectos de notificaciones en [dirección], y correo electrónico [correo],
 
 EXPONE:
 
