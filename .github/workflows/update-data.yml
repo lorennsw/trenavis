@@ -11,8 +11,8 @@ jobs:
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with: { node-version: 22 }
       - run: npm ci
       - run: npm test
@@ -22,4 +22,4 @@ jobs:
       - run: npm run data:quality
       - run: npx tsx tools/make-kv-bulk.ts
       - name: Subir datos al KV
-        run: npx wrangler kv bulk put data/out/kv-bulk.json --binding DATA --config worker/wrangler.toml --remote
+        run: npx wrangler kv bulk put data/out/kv-bulk.json --binding DATA --config worker/wrangler.toml
