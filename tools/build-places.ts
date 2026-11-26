@@ -2,9 +2,10 @@
  * Enriquecimiento con OpenStreetMap (se ejecuta en GitHub Actions; Overpass no es accesible desde todas partes).
  *  1. Municipio y provincia oficiales de cada estación (límites administrativos de OSM).
  *  2. Lugares (ciudades, pueblos, barrios…) a menos de 8 km de alguna estación, para buscar por localidad.
- * Si OSM falla, no rompe nada: se quedan los datos de Renfe y no se genera places.json.
+ * Escribe data/out/station-areas.json ({id: {town, prov}}) y data/out/places.json.
+ * Se ejecuta en un workflow aparte (mensual), porque OSM cambia poco y Overpass puede ir lento.
  *
- * Uso: tsx tools/build-places.ts [carpeta-salida]
+ * Uso: tsx tools/build-places.ts [carpeta-salida]   (OSM_BUDGET_MIN = minutos máximos, por defecto 25)
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -16,7 +17,7 @@ const OVERPASS = ['https://overpass-api.de/api/interpreter', 'https://overpass.k
 const UA = 'trenavis-data-build/1.0 (+https://github.com/lorennsw/trenavis)';
 const MAX_KM = 8;
 const START = Date.now();
-const BUDGET_MS = 8 * 60_000; // nunca más de 8 min en total: si OSM va lento, se sigue sin estos datos
+const BUDGET_MS = Number(process.env.OSM_BUDGET_MIN ?? 25) * 60_000;
 const log = (m: string) => console.log(`[${Math.round((Date.now() - START) / 1000)}s] ${m}`);
 
 async function overpass(query: string): Promise<any[]> {
@@ -76,14 +77,8 @@ async function main() {
       for (const [k, v] of assignAreas(await overpass(q))) areas.set(k, v);
       log(`municipios: ${Math.min(i + 40, stations.length)}/${stations.length}`);
     }
-    let n = 0;
-    for (const s of stations) {
-      const a = areas.get(s.id);
-      if (a?.town) { s.town = a.town; n++; }
-      if (a?.prov) s.prov = a.prov;
-    }
-    writeFileSync(path, JSON.stringify(stations));
-    console.log(`Municipios de OSM: ${n}/${stations.length}`);
+    writeFileSync(join(outDir, 'station-areas.json'), JSON.stringify(Object.fromEntries(areas)));
+    console.log(`Municipios de OSM: ${[...areas.values()].filter((a) => a.town).length}/${stations.length}`);
   } catch (e) { console.warn('OSM (municipios) no disponible, se mantienen los de Renfe:', (e as Error).message); }
 
   // 2. Lugares cerca de las estaciones, por trozos del mapa
@@ -91,7 +86,7 @@ async function main() {
     const lat = stations.map((s) => s.lat), lon = stations.map((s) => s.lon);
     const [s0, w0, n0, e0] = [Math.min(...lat) - 0.08, Math.min(...lon) - 0.1, Math.max(...lat) + 0.08, Math.max(...lon) + 0.1];
     const els: any[] = [];
-    const steps = 3;
+    const steps = 5;
     for (let i = 0; i < steps; i++) for (let j = 0; j < steps; j++) {
       const bb = [s0 + (n0 - s0) * i / steps, w0 + (e0 - w0) * j / steps, s0 + (n0 - s0) * (i + 1) / steps, w0 + (e0 - w0) * (j + 1) / steps].map((x) => x.toFixed(4)).join(',');
       els.push(...await overpass(`[out:json][timeout:80];node["place"~"^(city|town|village|suburb|quarter|neighbourhood|hamlet)$"]["name"](${bb});out;`));

@@ -30,3 +30,13 @@ describe('OSM', () => {
     expect(titleCaseTown('SANT VICENÇ DE CALDERS')).toBe('Sant Vicenç de Calders');
   });
 });
+
+import { applyAreas } from '../tools/apply-areas';
+describe('aplicar municipios de OSM', () => {
+  it('sobrescribe municipio y provincia cuando OSM los tiene', () => {
+    const st = [{ id: '1', name: 'Cunit', lat: 0, lon: 0, wc: true, prov: 'Barcelona' }, { id: '2', name: 'X', lat: 0, lon: 0, wc: true, town: 'X', prov: 'Lleida' }];
+    expect(applyAreas(st, { '1': { town: 'Cunit', prov: 'Tarragona' } })).toBe(1);
+    expect(st[0]).toMatchObject({ town: 'Cunit', prov: 'Tarragona' });
+    expect(st[1]).toMatchObject({ town: 'X', prov: 'Lleida' });
+  });
+});

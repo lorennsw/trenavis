@@ -1,0 +1,28 @@
+name: Actualizar municipios y lugares (OpenStreetMap)
+# OSM cambia poco y Overpass puede ir lento: se hace una vez al mes y el resultado se guarda en el KV del Worker.
+on:
+  schedule: [{ cron: '41 3 2 * *' }]   # día 2 de cada mes
+  workflow_dispatch:
+  push:
+    branches: [main, ccr-678091cb-mlaxyu]
+    paths: ['tools/build-places.ts', '.github/workflows/osm.yml']
+jobs:
+  osm:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npm run data:build
+      - name: Consultar OpenStreetMap
+        run: npx tsx tools/build-places.ts
+        env: { OSM_BUDGET_MIN: '30' }
+      - name: Guardar en el KV
+        run: |
+          if [ -f data/out/station-areas.json ]; then npx wrangler kv key put station-areas --path data/out/station-areas.json --binding DATA --config worker/wrangler.toml; fi
+          if [ -f data/out/places.json ]; then npx wrangler kv key put places --path data/out/places.json --binding DATA --config worker/wrangler.toml; fi
+          ls -la data/out/station-areas.json data/out/places.json || true
