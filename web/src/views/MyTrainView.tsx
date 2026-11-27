@@ -34,7 +34,7 @@ export function MyTrainView() {
     : t('follow.arrived', { s: name(follow.to) });
 
   const time = (planned: number) => delay > 0 && st.kind !== 'canceled'
-    ? <><span className="strike">{fmt(planned)}</span> <span className="real">{fmt(planned + delay)}</span></>
+    ? <><span className="strike"><span className="sr">{t('time.planned')} </span>{fmt(planned)}</span> <span className="real"><span className="sr">{t('time.real')} </span>{fmt(planned + delay)}</span></>
     : st.kind === 'canceled' ? <span className="strike">{fmt(planned)}</span> : fmt(planned);
 
   return (

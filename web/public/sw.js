@@ -1,7 +1,14 @@
 /* TrenAvís – service worker: muestra los avisos push aunque la app esté cerrada. */
-const SHELL = 'trenavis-shell-v2';
+const SHELL = 'trenavis-shell-__BUILD_VERSION__'; // la versión la pone tools/build-sw.ts en cada publicación
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(SHELL).then((c) => c.addAll(['./', 'manifest.webmanifest', 'icon-192.png'])).catch(() => {}));
+  // Guarda la app completa (lista generada al compilar) para poder abrirla sin conexión
+  e.waitUntil((async () => {
+    try {
+      const { files } = await (await fetch('precache.json', { cache: 'no-store' })).json();
+      const c = await caches.open(SHELL);
+      await Promise.all(files.map((f) => c.add(new Request(f, { cache: 'reload' })).catch(() => {})));
+    } catch { /* sin lista: se guardará al usarla */ }
+  })());
   self.skipWaiting();
 });
 self.addEventListener('activate', (e) => e.waitUntil((async () => {
@@ -26,11 +33,11 @@ self.addEventListener('fetch', (e) => {
   if (req.mode === 'navigate' && !isApp) return; // p. ej. páginas legales: red normal
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then((r) => { const copy = r.clone(); caches.open(SHELL).then((c) => c.put('./', copy)); return r; })
-      .catch(() => caches.match('./')));
+      .catch(() => caches.match('./', { ignoreVary: true })));
     return;
   }
   if (new URL(req.url).pathname.includes('/assets/')) {  // ficheros con hash: no cambian nunca
-    e.respondWith(caches.match(req).then((hit) => hit || fetch(req).then((r) => { const copy = r.clone(); caches.open(SHELL).then((c) => c.put(req, copy)); return r; })));
+    e.respondWith(caches.match(req, { ignoreVary: true, ignoreSearch: true }).then((hit) => hit || fetch(req).then((r) => { const copy = r.clone(); caches.open(SHELL).then((c) => c.put(req, copy)); return r; })));
   }
 });
 

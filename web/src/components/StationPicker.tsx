@@ -95,7 +95,7 @@ export function StationPicker({ label, value, onChange, reach, variant = 'field'
         </button>
       ) : (<>
         <span className="f" id={`lbl-${label}`}>{label}</span>
-        <button className="picker" aria-labelledby={`lbl-${label}`} aria-describedby={`val-${label}`} aria-haspopup="dialog" onClick={() => setOpen(true)}>
+        <button className="picker" aria-labelledby={`lbl-${label} val-${label}`} aria-haspopup="dialog" onClick={() => setOpen(true)}>
           <span id={`val-${label}`} className={current ? '' : 'ph'}>{current?.name ?? t('picker.choose')}</span>
         </button>
       </>)}

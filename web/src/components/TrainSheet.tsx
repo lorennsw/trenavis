@@ -36,7 +36,7 @@ export function TrainSheet({ run, date, from, to, onClose }: Props) {
   }
 
   const time = (planned: number) => canceled ? <span className="strike">{fmt(planned)}</span>
-    : delay > 0 ? <><span className="strike">{fmt(planned)}</span> <span className="real">{fmt(planned + delay)}</span></> : fmt(planned);
+    : delay > 0 ? <><span className="strike"><span className="sr">{t('time.planned')} </span>{fmt(planned)}</span> <span className="real"><span className="sr">{t('time.real')} </span>{fmt(planned + delay)}</span></> : fmt(planned);
 
   // "Voy en este": con tramo elegido; si se abre desde el panel, desde esa estación hasta el final (o desde el origen)
   const fFrom = seg ? from! : from ?? origin(run);

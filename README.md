@@ -1,146 +1,177 @@
-# Prompt para Claude Code — TrenAvís
+# TrenAvís
 
-Quiero construir **TrenAvís**, una app web instalable (PWA) para los trenes de Rodalies de Catalunya: horarios, salidas y llegadas, recorrido de cada tren, trenes en directo, seguimiento de "mi tren" con avisos de retraso y alarmas diarias que te dicen cuándo salir de casa.
+**Horarios, trenes en directo y avisos de salida para Rodalies de Catalunya.**
+App web instalable (PWA), gratis, sin anuncios y sin cuentas.
 
-Te paso un prototipo HTML (`trenavis.html`) con el diseño y el flujo. Úsalo como referencia visual y de funcionalidades, pero constrúyelo bien desde cero, con datos reales.
+👉 **Abrir la app:** https://lorennsw.github.io/trenavis/
 
-Trabaja **por fases** (al final) y enséñame el resultado de cada una antes de seguir. Si algo no está claro o no se puede hacer, pregúntame antes de inventarlo.
+> TrenAvís es una **app no oficial**, sin relación con Renfe, Adif ni la Generalitat de Catalunya.
+> Los datos pueden tener errores o faltar trenes: comprueba siempre la información oficial.
 
 ---
 
-## 1. Stack y arquitectura
+## Qué hace
 
-- **Frontend**: Vite + React + TypeScript. PWA instalable (manifest, service worker, icono, pantalla de inicio), mobile-first, modo claro y oscuro automático.
-- **Backend**: Cloudflare Workers (plan gratuito) con:
-  - **Cron Trigger** que descarga a diario el GTFS estático de Cercanías de Renfe, filtra solo Rodalies de Catalunya y lo convierte en JSON compacto (estaciones, líneas, viajes, paradas y horas), guardado en KV o R2.
-  - **Consulta del GTFS-Realtime** (trip updates, vehicle positions si existen, service alerts) cada 30-60 s, con caché, expuesta en una API propia para evitar CORS.
-  - **Base de datos** Cloudflare D1 (o KV) para las suscripciones push y la configuración mínima de los avisos (ver privacidad).
-  - **Envío de Web Push** con claves VAPID.
-- **Hosting**: frontend en GitHub Pages; Worker en Cloudflare.
-- **Antes de empezar**:
-  - Busca en data.renfe.com las URLs actuales de los feeds (GTFS estático y GTFS-Realtime de Cercanías) y confirma su licencia (creo que es CC BY 4.0).
-  - Comprueba la calidad de los datos de Cataluña: hay usuarios que reportan que el GTFS omite trenes de la RG1 (Maçanet–Figueres/Portbou) y de la RT2. Avísame de lo que encuentres.
-- **Gestión de errores**: si Renfe no responde o los datos llegan mal, usar los últimos datos buenos guardados, mostrar "sin datos en tiempo real" y no romper la app. Sin conexión: horarios estáticos guardados en el dispositivo.
+- **Buscar**: trenes de una estación a otra, directos o con un transbordo, con la hora real y el retraso.
+- **Estación**: panel de salidas y llegadas como el del andén, con estaciones favoritas y "tu nota" de vía.
+- **Mi tren**: sigue el tren que vas a coger ("Voy en este"), con cuenta atrás y retraso en directo.
+- **Avisos de salida**: tu trayecto de siempre y te dice a qué hora salir de casa (con el retraso real).
+- **Notificaciones con la app cerrada**: retrasos del tren que sigues y aviso de salida.
+- **Línea en directo** y **mapa** con los trenes que circulan, e **incidencias** de cada línea.
+- Funciona **sin conexión** con los últimos horarios descargados. Modo claro/oscuro.
 
-## 2. Secciones (barra inferior con 5 pestañas)
+## Cómo está hecha (en una frase por pieza)
 
-1. **Mi tren**
-   - Muestra el tren que el usuario marca como "Voy en este".
-   - Cuenta atrás ("sale en X min" / "llegas en X min"), recorrido de su tramo parada a parada con la hora prevista y la real (tachar la prevista si hay retraso) y estado: a su hora, +X min o cancelado.
-   - Botones "Recorrido completo", "Línea en directo" y "Dejar de seguir".
-   - Cinta fija arriba con el tren seguido cuando el usuario está en otra pestaña.
-2. **Buscar**
-   - Origen y destino (con buscador de estaciones y botón de invertir), hora "salir a partir de" y botón "Ahora".
-   - Lista de trenes con salida, llegada, duración, línea, número de tren, dirección y estado en tiempo real.
-   - Filtros: por línea (R1, R2, R2 Nord, R2 Sud, R3, R4, R7, R8, R11, R13, R14, R15, R16, R17, RG1, RL3, RL4… las que haya en los datos), ocultar cancelados y solo a su hora. Orden por hora o por el más rápido.
-   - Trayectos con un transbordo como máximo, marcados como tal y con el tiempo de transbordo.
-   - Botones "Recorrido" y "Voy en este" en cada tren.
-3. **Estación**
-   - Panel de Salidas / Llegadas de la estación elegida, como el del andén: hora, línea, destino o procedencia, número de tren, vía (si el dato existe), estado y hora real.
-   - Filtro por línea y estaciones favoritas.
-   - Al tocar un tren se abre su recorrido.
-4. **Alarmas**
-   - Alarmas recurrentes por trayecto, con estos campos:
-     - origen y destino;
-     - modo "llegar antes de" o "salir después de", y la hora;
-     - días (L M X J V S D, con los atajos "lunes a viernes", "todos los días" y "fin de semana");
-     - minutos a pie hasta la estación;
-     - "avisarme 0/5/10/15 min antes de salir".
-   - La app busca el mejor tren: el último que llega a tiempo o el primero después de la hora. Descarta los cancelados, suma el retraso real y calcula "sal de casa a las X".
-   - Vista previa en directo mientras se crea la alarma.
-   - Activar/desactivar, editar y borrar con confirmación.
-5. **Más**
-   - Líneas: estado de cada una (normal / retrasos / incidencia), su lista de estaciones, incidencias y botón "Ver trenes en directo".
-   - Ajustes de avisos: retrasos del tren seguido, alarmas de salida y permiso de notificaciones.
-   - Legal, accesibilidad, fuentes de datos y "Tus datos" (exportar y borrar).
+| Pieza | Qué hace | Dónde |
+|---|---|---|
+| **Web (PWA)** | La app que ves. Vite + React + TypeScript. | `web/` → GitHub Pages |
+| **API (Worker)** | Sirve horarios y tiempo real, guarda las notificaciones y las envía cada minuto. | `worker/` → Cloudflare Workers |
+| **Datos** | Cada día descarga el GTFS de Renfe, filtra Rodalies y lo sube a Cloudflare. | `tools/` + GitHub Actions |
+| **Base de datos** | Suscripciones push y datos mínimos de los avisos. | Cloudflare D1 |
+| **Almacén** | Horarios procesados, claves de notificaciones. | Cloudflare KV |
 
-## 3. Funciones "plus" (como la app oficial y más)
+```
+Renfe (GTFS + tiempo real) ──► GitHub Actions (cada día) ──► Cloudflare KV
+                                                              │
+   Móvil (web/app) ◄──── API Cloudflare Worker ◄──────────────┘
+        ▲                    │  cron cada minuto
+        └── notificación ◄───┘  (Web Push)
+```
 
-- **Detalle de tren**: al tocar cualquier tren (en Buscar, Estación, Mi tren o la vista de línea) se abre su recorrido completo, de la primera a la última parada, con:
-  - la hora prevista y la real de cada parada (tachar la prevista si hay retraso);
-  - las paradas ya pasadas marcadas;
-  - la posición actual ("en X" o "entre X e Y");
-  - el tramo del usuario resaltado, con "subes" y "bajas";
-  - botones "Voy en este" y "Ver la línea en directo".
-- **Línea en directo (visor de trenes)**: diagrama vertical de cada línea, con selector de sentido y todos los trenes que circulan ahora, colocados en la estación o entre dos estaciones. Usa vehicle positions si existen; si no, estima la posición con los trip updates. Cada tren muestra su número y su retraso; al tocarlo se abre su detalle. Se actualiza solo.
-- **Mapa interactivo** con Leaflet + OpenStreetMap (con su atribución) que muestre las estaciones y los trenes en circulación.
-- **Incidencias**: service alerts por línea y por estación, y aviso si afectan a una alarma o al tren seguido.
-- **Accesibilidad de estaciones** (ascensor, acceso sin escalones) si los datos lo incluyen.
-- Las vistas abiertas se actualizan cada 15-30 s sin recargar la página.
+---
 
-## 4. Notificaciones
+## Guía paso a paso (Windows)
 
-- **Tren seguido**: avisar cuando cambia el retraso, cuando se cancela y cuando vuelve a ir a su hora. No repetir el mismo aviso.
-- **Alarmas**: avisar a la hora calculada, recalculada con el retraso real del momento.
-- Tienen que llegar **con la app cerrada**, por Web Push desde el Worker. El servidor revisa cada minuto qué avisos tocan.
-- En iPhone, Web Push solo funciona si la PWA está instalada en la pantalla de inicio (iOS 16.4 o superior). Explicarlo en la app con una guía de "cómo instalar".
-- Opción de desactivar cada tipo de aviso. Al desactivarlos todos, se borra la suscripción del servidor.
+No hace falta ser experto: sigue los pasos en orden. Todo es **gratis**.
 
-## 5. Privacidad y legal (España / UE)
+### 1. Instalar lo necesario
 
-**Datos mínimos (privacidad desde el diseño)**
-- Sin registro ni cuentas. No pedir nombre, correo, teléfono ni ubicación.
-- En el dispositivo: alarmas, tren seguido, favoritos y ajustes.
-- En el servidor, solo lo imprescindible para que los avisos lleguen con la app cerrada: la suscripción push (identificador técnico) y, por cada aviso, el trayecto, los días, la hora, los minutos de antelación y el ID del tren seguido. Nada que identifique a la persona.
-- Esos datos se borran al desactivar los avisos, al borrar la alarma o al dejar de seguir el tren. Los trenes seguidos se borran solos a las 24 h.
+1. **Node.js** (versión LTS): descárgalo de https://nodejs.org → "LTS" → instala con todas las opciones por defecto.
+2. **Git**: descárgalo de https://git-scm.com/download/win → instala con las opciones por defecto.
+3. Comprueba que funcionan: abre **PowerShell** (tecla Windows → escribe "PowerShell") y escribe:
+   ```powershell
+   node -v
+   git --version
+   ```
+   Deben salir dos números de versión.
 
-**Páginas legales (accesibles desde Más y desde el pie de la web)**
-- **Aviso legal (LSSI)**: titular, NIF, domicilio y correo de contacto. Déjalos como "pendiente" para que yo los rellene. Que diga que es gratis, sin compras ni anuncios.
-- **Política de privacidad (RGPD / LOPDGDD)**: responsable, qué datos se guardan y dónde (dispositivo / servidor), finalidad, base legal (ejecución del servicio, art. 6.1.b), plazos de conservación, encargados del tratamiento (Cloudflare, GitHub, servicios push del navegador), derechos (acceso, rectificación, supresión, oposición, portabilidad) y reclamación ante la AEPD. Edad: no se recogen datos personales; si algún día hay cuentas, mínimo 14 años o consentimiento de los padres.
-- **Cookies y almacenamiento**: sin cookies de analítica ni de publicidad. Solo almacenamiento técnico necesario (art. 22.2 LSSI), sin banner de consentimiento, con un aviso informativo la primera vez. Si alguna vez se añaden cookies no necesarias, pedir consentimiento previo con "aceptar" y "rechazar" igual de visibles.
-- **Términos de uso**: los datos vienen de terceros y pueden tener errores, retrasos o faltar trenes; comprobar siempre la información oficial; los avisos pueden llegar tarde; limitación de responsabilidad; uso correcto; cambios en los términos; ley española.
-- **Accesibilidad**: declaración de cumplimiento de WCAG 2.1 AA y contacto para reportar barreras.
-- **Fuentes de datos y licencias**: "Datos: Renfe" con su licencia (CC BY 4.0 si se confirma), OpenStreetMap, tipografías y librerías con sus licencias.
+### 2. Descargar el proyecto y probarlo en tu ordenador
 
-**Reglas generales**
-- Aviso visible de "App no oficial, sin relación con Renfe, Adif ni la Generalitat de Catalunya".
-- No usar logos, colores corporativos ni nombres de marca de Renfe o Rodalies como nombre o icono de la app. Solo los nombres de líneas y estaciones, para identificar el servicio.
-- "Tus datos": exportar en JSON (copiar o descargar) y "Borrar todos mis datos" con confirmación, que borre también lo guardado en el servidor.
-- Nada de dark patterns, cargos ocultos, reseñas falsas ni afirmaciones sin respaldo (no decir "100 % exacto" ni "nunca perderás un tren").
-- Sin SDKs de terceros innecesarios. Sin analítica. Lista en el README las dependencias que uses y por qué.
-- Solo imágenes e iconos propios o con licencia libre, con su atribución.
+```powershell
+git clone https://github.com/lorennsw/trenavis.git
+cd trenavis
+npm install          # descarga las dependencias (tarda un poco la primera vez)
+npm run dev          # abre la app en http://localhost:5173
+npm test             # pasa los tests
+```
 
-## 6. Accesibilidad (WCAG 2.1 AA)
+La versión local usa la API ya publicada, así que funciona sin configurar nada más.
 
-- Contraste suficiente en modo claro y oscuro.
-- Todo usable con teclado y con lector de pantalla (roles, etiquetas, foco visible y gestión del foco en las hojas o modales).
-- El estado del tren no se indica solo con color: siempre también con texto.
-- Botones de al menos 44 px, textos de al menos 13 px y tamaño de letra ampliable.
-- Texto alternativo en imágenes e iconos con significado.
-- Respetar "reducir movimiento".
+### 3. Crear las cuentas
 
-## 7. Diseño
+1. **GitHub** (https://github.com/signup): donde vive el código y se publica la web.
+2. **Cloudflare** (https://dash.cloudflare.com/sign-up): el servidor (API, datos y notificaciones). No pide tarjeta.
 
-- Como el prototipo: franja superior de color, tarjetas tipo billete, panel de salidas estilo andén y recorrido vertical con puntos.
-- Tipografías Space Grotesk (títulos y horas) e Inter (texto).
-- Un color de marca propio (no el de Renfe) y colores propios para las líneas.
-- Icono de la app y pantalla de bienvenida propios: diséñalos tú en SVG.
-- Estados vacíos, de carga (skeletons) y de error en todas las vistas.
-- Todo el texto en español, con un sistema de traducciones preparado para añadir catalán.
+> Si eres menor, las cuentas de pago (Google Play, Apple) las tiene que abrir un adulto. GitHub y Cloudflare son gratis.
 
-## 8. Calidad
+### 4. Configurar Cloudflare
 
-- Código organizado por módulos: datos GTFS, tiempo real, búsqueda y transbordos, alarmas, notificaciones, UI y legal.
-- Tests (Vitest) de:
-  - la búsqueda de trayectos y transbordos;
-  - "mejor tren" y "hora de salir de casa";
-  - el cálculo de la posición de los trenes;
-  - casos límite: cambio de día, trenes después de medianoche, cancelados y sin datos en tiempo real.
-- Lighthouse: PWA instalable y buena puntuación en rendimiento y accesibilidad.
-- README paso a paso, pensado para alguien que usa **Windows** y no es experto:
-  - instalar Node y las dependencias;
-  - crear las cuentas de GitHub y de Cloudflare;
-  - generar las claves VAPID;
-  - configurar los secretos;
-  - desplegar el Worker y el frontend en GitHub Pages;
-  - instalar la app en Android y en iPhone.
-- Opcional, al final: empaquetarla para Google Play como TWA (Bubblewrap) y explicarme los pasos y el coste de la cuenta de desarrollador.
+1. En Cloudflare: **Storage & Databases → KV → Create** → nombre `trenavis-data`. Copia su **ID**.
+2. Copia tu **Account ID** (en **Workers & Pages**, columna derecha). Entra una vez en Workers & Pages para elegir tu subdominio `*.workers.dev`.
+3. Pon los dos IDs en `worker/wrangler.toml` (`account_id` y el `id` del KV).
+4. Crea un **token**: https://dash.cloudflare.com/profile/api-tokens → **Create Token** → plantilla
+   **"Edit Cloudflare Workers"** → en la política de cuenta añade también **D1 → Edit** → elige tu cuenta → **Create** → copia el token.
 
-## 9. Fases (enséñame cada una antes de seguir)
+La **base de datos D1**, las **claves de notificaciones (VAPID)** y el token de administración se crean **solos** la
+primera vez que se despliega. No hay que generarlos a mano.
 
-1. **Datos**: descarga y conversión del GTFS, comprobación de la calidad de los datos de Cataluña, API básica.
-2. **Buscar, Estación y detalle de tren** con horarios estáticos.
-3. **Tiempo real**: retrasos, cancelaciones, Mi tren, Línea en directo, mapa e incidencias.
-4. **Alarmas** con el cálculo de "sal de casa a las X".
-5. **Notificaciones push** con la app cerrada (tren seguido y alarmas) y base de datos del servidor.
-6. **Legal, privacidad, accesibilidad, icono**, README y despliegue final.
+### 5. Configurar GitHub
+
+1. En tu repositorio: **Settings → Secrets and variables → Actions → New repository secret**
+   → nombre `CLOUDFLARE_API_TOKEN` → pega el token. (Nunca lo pegues en el código ni en un chat.)
+2. **Settings → Pages → Source: GitHub Actions** (para publicar la web).
+3. Si tu usuario no es `lorennsw`, cambia la dirección de la API en `web/src/api.ts` y la web en `web/src/legal/config.ts`
+   y en `worker/src/push.ts` (`SUBJECT`).
+
+### 6. Desplegar
+
+- **API y datos**: pestaña **Actions → "Desplegar Worker y actualizar datos GTFS" → Run workflow**.
+  Después se ejecuta solo **cada día** y cada vez que cambias `worker/` o `tools/`.
+- **Web**: se publica sola en cada cambio a `main` (workflow "Publicar web en GitHub Pages").
+- **Municipios y pueblos** (OpenStreetMap): workflow mensual "Actualizar municipios y lugares". Puedes lanzarlo a mano.
+
+### 7. Rellenar los datos legales
+
+Edita `web/src/legal/config.ts` con el **nombre, documento, domicilio y correo** del titular (aparecen en el aviso legal y
+la política de privacidad). Ten en cuenta que el domicilio será público.
+
+### 8. Instalar la app en el móvil
+
+- **Android (Chrome)**: abre la web → toca **"Instalar"** en el aviso de arriba (o en **Más → Notificaciones**).
+  Queda en el cajón de apps con su icono.
+- **iPhone (Safari, iOS 16.4+)**: abre la web en Safari → **Compartir** → **Añadir a pantalla de inicio** → ábrela desde el icono.
+  En iPhone las notificaciones **solo** funcionan así.
+- Después: **Más → Notificaciones** para activar las notificaciones.
+
+---
+
+## Estructura
+
+```
+web/            App (React). core/ = lógica pura probada con tests (horarios, búsqueda, tiempo real, avisos)
+worker/         API en Cloudflare Workers (datos, tiempo real, notificaciones push, cron)
+tools/          Scripts: conversión GTFS, informe de calidad, OSM, planificación de avisos, páginas legales
+shared/         Tipos compartidos entre web y Worker
+tests/          Tests (Vitest)
+docs/           Fases, informe de calidad de datos, solicitud a Adif, encargo original
+.github/        Workflows (datos diarios, web, OSM mensual)
+```
+
+## Comandos
+
+| Comando | Para qué |
+|---|---|
+| `npm run dev` | App en local (http://localhost:5173) |
+| `npm test` | Tests |
+| `npm run typecheck` | Comprobar tipos |
+| `npm run build` | Compilar la web (y páginas legales, service worker) en `dist/` |
+| `npm run data:build` | Descargar y convertir el GTFS a `data/out/` |
+| `npm run data:quality` | Informe de calidad de los datos |
+| `npm run worker:dev` | API en local |
+
+## Dependencias y por qué
+
+| Paquete | Por qué | Licencia |
+|---|---|---|
+| react, react-dom | Interfaz de la app | MIT |
+| leaflet | Mapa en directo (se descarga solo al abrir el mapa) | BSD-2 |
+| @fontsource/inter, @fontsource/space-grotesk | Tipografías servidas desde la propia web (sin Google Fonts, por privacidad) | OFL / MIT |
+| vite, @vitejs/plugin-react | Compilar la web | MIT |
+| typescript, tsx | Tipos y ejecutar scripts | Apache-2.0 / MIT |
+| vitest | Tests | MIT |
+| wrangler, @cloudflare/workers-types | Desplegar y probar el Worker | MIT / Apache-2.0 |
+| axe-core | Revisión de accesibilidad (solo desarrollo) | MPL-2.0 |
+
+Sin analítica, sin publicidad y sin SDKs de terceros. Las notificaciones push se cifran sin librerías externas
+(`worker/src/webpush.ts`).
+
+## Fuentes de datos y licencias
+
+- **Datos: Renfe** — horarios (GTFS) y tiempo real (GTFS-Realtime) de [data.renfe.com](https://data.renfe.com), licencia **CC BY 4.0**.
+- **Mapas y municipios: © colaboradores de OpenStreetMap**, licencia ODbL.
+- Icono y diseño propios. No se usan logos ni colores corporativos de Renfe, Rodalies ni Adif.
+
+## Costes
+
+Todo cabe en los planes **gratuitos** de GitHub y Cloudflare para un uso normal. Si se superan los límites gratuitos,
+Cloudflare deja de responder hasta el día siguiente; no cobra nada. Opcional: Google Play (25 $ una vez) y Apple (99 $/año).
+
+## Problemas conocidos de los datos
+
+Ver `docs/calidad-datos.md`: RG1 sin trenes en fin de semana, RT2 con solo 2 paradas, días sin horario publicado y
+sin información de vías (se puede apuntar "tu nota"; solicitud a Adif en `docs/solicitud-adif-vias.md`).
+
+## Documentación por fases
+
+`docs/FASE1.md` (datos) · `docs/FASE2.md` (buscar y estación) · `docs/FASE3.md` (tiempo real) ·
+`docs/FASE4.md` (avisos de salida) · `docs/FASE5.md` (notificaciones push) · `docs/FASE6.md` (legal, accesibilidad, sin conexión)
