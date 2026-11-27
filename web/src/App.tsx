@@ -6,6 +6,7 @@ import { FollowRibbon } from './components/FollowRibbon';
 import { MyTrainView } from './views/MyTrainView';
 import { usePushSync } from './usePushSync';
 import { registerSW } from './push';
+import { InstallBanner } from './components/InstallBanner';
 import { Ctx, type AppData, type Follow } from './context';
 import { compareLines } from './core/lines';
 import { madridNow, fmt } from './core/time';
@@ -125,6 +126,7 @@ export function App() {
       {data && tab !== 'mitren' && <Ctx.Provider value={data}><FollowRibbon /></Ctx.Provider>}</header>
       {state.s === 'ready' && state.offline && <div className="banner" role="status"><div className="in">{t('load.offline')}</div></div>}
 
+      <InstallBanner />
       <main className="wrap">
         <h2 ref={heading} tabIndex={-1}>{t(cur.title as Key)}</h2>
         {cur.sub && <p className="sub">{t(cur.sub as Key)}</p>}

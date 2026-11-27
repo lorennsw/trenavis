@@ -3,6 +3,7 @@ import { usePersisted } from '../store';
 import { isIOS, isStandalone, NO_PREFS, permission, pushSupported, serverReady, subscribe, testNotification, unsubscribeAll, type NotifPrefs } from '../push';
 import { t } from '../i18n';
 import { Sheet } from './Sheet';
+import { useInstall } from '../install';
 
 /** Más → Avisos: activar/desactivar cada tipo de aviso, permiso del sistema y guía de instalación. */
 export function NotificationsSettings() {
@@ -13,6 +14,7 @@ export function NotificationsSettings() {
   const [guide, setGuide] = useState(false);
   const [syncOk, setSyncOk] = useState<boolean | null>(null);
   const [server, setServer] = useState<boolean | null>(null);
+  const inst = useInstall();
   useEffect(() => { serverReady().then(setServer); }, []);
   useEffect(() => { const on = (e: Event) => setSyncOk((e as CustomEvent).detail); addEventListener('trenavis-sync', on); return () => removeEventListener('trenavis-sync', on); }, []);
 
@@ -39,7 +41,8 @@ export function NotificationsSettings() {
   return (
     <>
       <h3>{t('notif.title')}</h3>
-      {!isStandalone() && <button className="btn wide install" onClick={() => setGuide(true)}>📲 {t('notif.howInstall')}</button>}
+      {inst.state === 'available' && <button className="btn pri wide install" onClick={() => inst.install()}>📲 {t('install.button')}</button>}
+      {(inst.state === 'ios' || inst.state === 'manual') && <button className="btn wide install" onClick={() => setGuide(true)}>📲 {t('notif.howInstall')}</button>}
       {server === false ? (
         <div className="info"><p style={{ margin: 0 }}>{t('notif.serverOff')}</p></div>
       ) : !supported ? (

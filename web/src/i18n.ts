@@ -86,6 +86,8 @@ const es = {
   'map.trains': '{n} trenes con posición GPS', 'map.loading': 'Cargando mapa…',
   'map.privacy': 'El mapa se descarga de OpenStreetMap solo al abrirlo.',
   'alerts.station': 'Avisos que afectan a esta estación', 'alerts.follow': 'Aviso en tu línea',
+  'install.title': 'Instala TrenAvís', 'install.why': 'Con su icono, a pantalla completa y con avisos.', 'install.go': 'Instalar', 'install.close': 'Cerrar',
+  'install.button': 'Instalar TrenAvís', 'install.done': 'TrenAvís ya está instalada en este dispositivo.',
   'notif.title': 'Avisos', 'notif.follow': 'Retrasos del tren que sigo', 'notif.followDesc': 'Si cambia el retraso, se cancela o vuelve a ir a su hora',
   'notif.alarms': 'Alarmas de salida', 'notif.alarmsDesc': 'Te aviso cuándo salir de casa, con el retraso real',
   'notif.system': 'Notificaciones del sistema', 'notif.perm.granted': 'Permiso concedido', 'notif.perm.denied': 'Bloqueadas en este navegador',
