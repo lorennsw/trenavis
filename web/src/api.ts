@@ -38,3 +38,24 @@ export async function loadAll(): Promise<Loaded> {
     offline: [meta, stations, lines, ...files].some((x) => x.fromCache),
   };
 }
+
+// ---------- Tiempo real ----------
+import type { Alert, RealtimeResponse, TripUpdate, Vehicle } from '../../shared/realtime-types';
+import { buildRT, EMPTY_RT, type RTState } from './core/live';
+
+/** Descarga los tres feeds normalizados del Worker. Si falla, devuelve el estado anterior marcado como antiguo. */
+export async function loadRealtime(prev: RTState = EMPTY_RT): Promise<RTState> {
+  const get = async <T,>(k: string) => {
+    const r = await fetch(`${API}/realtime/${k}`, { cache: 'no-store' });
+    const j = (await r.json()) as RealtimeResponse<T>;
+    if (!r.ok && !j.data) throw new Error(String(r.status));
+    return j;
+  };
+  try {
+    const [tu, vp, al] = await Promise.all([get<TripUpdate>('trip-updates'), get<Vehicle>('vehicles'), get<Alert>('alerts')]);
+    const ageMin = (Date.now() / 1000 - (tu.updatedAt ?? 0)) / 60;
+    return buildRT(tu.data ?? [], vp.data ?? [], al.data ?? [], tu.updatedAt ?? null, !!(tu.stale || ageMin > 10));
+  } catch {
+    return { ...prev, stale: true };
+  }
+}

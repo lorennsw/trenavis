@@ -1,6 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { loadAll, type Loaded } from './api';
-import { Ctx, type AppData } from './context';
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { loadAll, loadRealtime, type Loaded } from './api';
+import { EMPTY_RT, type RTState } from './core/live';
+import { LineSheet } from './components/LineSheet';
+import { FollowRibbon } from './components/FollowRibbon';
+import { MyTrainView } from './views/MyTrainView';
+import { Ctx, type AppData, type Follow } from './context';
 import { compareLines } from './core/lines';
 import { madridNow, fmt } from './core/time';
 import type { Run } from './core/timetable';
@@ -9,7 +13,8 @@ import { t, type Key } from './i18n';
 import { SearchView } from './views/SearchView';
 import { StationView } from './views/StationView';
 import { MoreView } from './views/MoreView';
-import { MyTrainView, AlarmsView } from './views/Placeholders';
+import { AlarmsView } from './views/Placeholders';
+const MapSheet = lazy(() => import('./components/MapSheet')); // Leaflet solo se descarga al abrir el mapa
 import { TrainSheet } from './components/TrainSheet';
 
 const TABS = [
@@ -20,8 +25,26 @@ const TABS = [
   { id: 'mas', label: 'tab.more', title: 'more.title', sub: null, icon: <path d="M4 7h16M4 12h16M4 17h16" /> },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
-const DEFAULT_TAB: TabId = 'buscar';
-const tabFromHash = (): TabId => (TABS.find((x) => x.id === location.hash.slice(1))?.id ?? DEFAULT_TAB);
+const tabFromHash = (fallback: TabId = 'buscar'): TabId => (TABS.find((x) => x.id === location.hash.slice(1))?.id ?? fallback);
+const FOLLOW_TTL_MS = 24 * 3600 * 1000;
+
+/** Tiempo real cada 30 s mientras la página está visible. */
+function useRealtime(enabled: boolean) {
+  const [rt, setRt] = useState<RTState>(EMPTY_RT);
+  useEffect(() => {
+    if (!enabled) return;
+    let alive = true, timer: ReturnType<typeof setTimeout> | undefined;
+    const tick = async () => {
+      if (document.visibilityState === 'visible') { const n = await loadRealtime(); if (alive) setRt((p) => (n.updatedAt === null && p.updatedAt !== null ? { ...p, stale: true } : n)); }
+      if (alive) timer = setTimeout(tick, 30000);
+    };
+    tick();
+    const onVis = () => { if (document.visibilityState === 'visible') { clearTimeout(timer); tick(); } };
+    document.addEventListener('visibilitychange', onVis);
+    return () => { alive = false; clearTimeout(timer); document.removeEventListener('visibilitychange', onVis); };
+  }, [enabled]);
+  return rt;
+}
 
 /** Hora de Madrid que se actualiza sola cada 15 s (las vistas abiertas se refrescan sin recargar). */
 function useNow() {
@@ -35,7 +58,11 @@ function useNow() {
 
 export function App() {
   const [state, setState] = useState<{ s: 'loading' } | { s: 'error' } | ({ s: 'ready' } & Loaded)>({ s: 'loading' });
-  const [tab, setTab] = useState<TabId>(tabFromHash);
+  const [follow, setFollowRaw] = usePersisted<Follow | null>('follow', null);
+  const followActive = follow && Date.now() - follow.savedAt < FOLLOW_TTL_MS ? follow : null;
+  const [tab, setTab] = useState<TabId>(() => tabFromHash(followActive ? 'mitren' : 'buscar'));
+  const [lineSheet, setLineSheet] = useState<{ id: string; dir: number } | null>(null);
+  const [mapSheet, setMapSheet] = useState<{ line?: string } | null>(null);
   const [train, setTrain] = useState<{ run: Run; date: string; from?: string; to?: string } | null>(null);
   const [favorites, setFavorites] = usePersisted<string[]>('favorites', []);
   const [platforms, setPlatforms] = usePersisted<Record<string, string>>('platforms', {});
@@ -45,12 +72,14 @@ export function App() {
 
   const load = useCallback(() => { setState({ s: 'loading' }); loadAll().then((d) => setState({ s: 'ready', ...d })).catch(() => setState({ s: 'error' })); }, []);
   useEffect(load, [load]);
+  const rt = useRealtime(state.s === 'ready');
+  useEffect(() => { if (follow && !followActive) setFollowRaw(null); }, [follow, followActive, setFollowRaw]); // borrado automático a las 24 h
 
   useEffect(() => {
-    const on = () => setTab(tabFromHash());
+    const on = () => setTab(tabFromHash(followActive ? 'mitren' : 'buscar'));
     addEventListener('hashchange', on);
     return () => removeEventListener('hashchange', on);
-  }, []);
+  }, [followActive]);
   useEffect(() => {
     if (firstRoute.current) { firstRoute.current = false; return; }
     scrollTo(0, 0);
@@ -74,8 +103,13 @@ export function App() {
       setPlatform: (key, value) => setPlatforms((p) => { const n = { ...p }; if (value) n[key] = value; else delete n[key]; return n; }),
       now,
       openTrain: (run, date, from, to) => setTrain({ run, date, from, to }),
+      rt,
+      follow: followActive,
+      setFollow: (f) => setFollowRaw(f),
+      openLine: (id, dir = 0) => { setTrain(null); setLineSheet({ id, dir }); },
+      openMap: (line) => { setTrain(null); setLineSheet(null); setMapSheet({ line }); },
     };
-  }, [state, favorites, setFavorites, platforms, setPlatforms, now]);
+  }, [state, favorites, setFavorites, platforms, setPlatforms, now, rt, followActive, setFollowRaw]);
 
   const cur = TABS.find((x) => x.id === tab)!;
   return (
@@ -83,7 +117,8 @@ export function App() {
       <header className="strip"><div className="in">
         <div><h1>{t('app.name')}</h1><small>{t('app.tagline')}</small></div>
         <div className="clock" role="timer" aria-label={t('app.clock')}>{fmt(now.min)}</div>
-      </div></header>
+      </div>
+      {data && tab !== 'mitren' && <Ctx.Provider value={data}><FollowRibbon /></Ctx.Provider>}</header>
       {state.s === 'ready' && state.offline && <div className="banner" role="status"><div className="in">{t('load.offline')}</div></div>}
 
       <main className="wrap">
@@ -99,6 +134,8 @@ export function App() {
             {tab === 'alarmas' && <AlarmsView />}
             {tab === 'mas' && <MoreView />}
             {train && <TrainSheet {...train} onClose={() => setTrain(null)} />}
+            {lineSheet && <LineSheet lineId={lineSheet.id} dir={lineSheet.dir} onDir={(dir) => setLineSheet({ ...lineSheet, dir })} onClose={() => setLineSheet(null)} />}
+            {mapSheet && <Suspense fallback={null}><MapSheet line={mapSheet.line} onClose={() => setMapSheet(null)} /></Suspense>}
           </Ctx.Provider>
         )}
       </main>

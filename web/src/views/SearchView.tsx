@@ -10,9 +10,13 @@ import { StationPicker } from '../components/StationPicker';
 import { LineChip } from '../components/LineChip';
 import { LineFilter } from '../components/LineFilter';
 import { platformKey } from '../core/platform';
+import { delayOf, runStatus, transferAtRisk, type Status } from '../core/live';
+import { StatusLabel } from '../components/StatusLabel';
 
 export function SearchView() {
-  const { tt, meta, lineIds, now, openTrain } = useApp();
+  const { tt, meta, lineIds, now, openTrain, rt } = useApp();
+  const [hideCanceled, setHideCanceled] = useState(false);
+  const [onlyOnTime, setOnlyOnTime] = useState(false);
   const [q, setQ] = usePersisted<{ from: string | null; to: string | null }>('search', { from: null, to: null });
   const [date, setDate] = useState(now.date);
   const [after, setAfter] = useState(now.min);
@@ -30,9 +34,18 @@ export function SearchView() {
 
   const results = useMemo(() => {
     if (!q.from || !q.to || q.from === q.to) return null;
-    const js = search(tt, q.from, q.to, date, after, { lines });
-    return sort === 'dur' ? [...js].sort((a, b) => (a.arr - a.dep) - (b.arr - b.dep) || a.dep - b.dep) : js;
-  }, [tt, q.from, q.to, date, after, lines, sort]);
+    // Se busca desde 60 min antes para no perder trenes que salen tarde por retraso
+    const js = search(tt, q.from, q.to, date, after - 60, { lines, windowMin: 300 }).map((j) => {
+      const sts = j.legs.map((l) => runStatus(l.run, rt, date, now.date, now.min));
+      const ds = sts.map(delayOf);
+      const canceled = sts.some((s) => s.kind === 'canceled');
+      const risk = j.legs.length > 1 && transferAtRisk(j.legs[0].run.arr[j.legs[0].to], ds[0], j.legs[1].run.dep[j.legs[1].from], ds[1]);
+      return { j, sts, ds, canceled, risk, realDep: j.dep + ds[0], realArr: j.arr + ds[ds.length - 1] };
+    }).filter((x) => x.realDep >= after || (x.canceled && x.j.dep >= after))
+      .filter((x) => !hideCanceled || !x.canceled)
+      .filter((x) => !onlyOnTime || x.sts.every((s) => s.kind === 'ontime'));
+    return sort === 'dur' ? js.sort((a, b) => (a.realArr - a.realDep) - (b.realArr - b.realDep) || a.realDep - b.realDep) : js.sort((a, b) => a.j.dep - b.j.dep);
+  }, [tt, q.from, q.to, date, after, lines, sort, rt, now.date, now.min, hideCanceled, onlyOnTime]);
 
   // Si el destino elegido ya no tiene tren desde el nuevo origen, se borra
   const setFrom = (from: string) => { setQ({ from, to: q.to && reachableFrom(tt, from).has(q.to) ? q.to : null }); setShown(10); };
@@ -66,7 +79,7 @@ export function SearchView() {
           {!isNow && <button className="btn sm" onClick={setNow}>{t('common.now')}</button>}
         </div>
         <details className="opts" open={advOpen} onToggle={(e) => setAdvOpen((e.target as HTMLDetailsElement).open)}>
-          <summary>{t('search.advanced')}{(lines.size > 0 || sort === 'dur') && <b> · {[sort === 'dur' && t('search.sort.dur'), lines.size > 0 && [...lines].join(', ')].filter(Boolean).join(' · ')}</b>}</summary>
+          <summary>{t('search.advanced')}{(lines.size > 0 || sort === 'dur' || hideCanceled || onlyOnTime) && <b> · {[sort === 'dur' && t('search.sort.dur'), lines.size > 0 && [...lines].join(', '), hideCanceled && t('search.hideCanceled'), onlyOnTime && t('search.onlyOnTime')].filter(Boolean).join(' · ')}</b>}</summary>
 
           <span className="f">{t('search.date')}</span>
           <div className="filters" role="group" aria-label={t('search.date')}>
@@ -91,6 +104,11 @@ export function SearchView() {
           </select>
           <span className="f">{t('search.lines')}</span>
           <LineFilter all={lineIds} selected={lines} onChange={setLines} plain />
+          <span className="f">{t('search.rtFilters')}</span>
+          <div className="filters">
+            <button className="fl" aria-pressed={hideCanceled} onClick={() => setHideCanceled(!hideCanceled)}>{t('search.hideCanceled')}</button>
+            <button className="fl" aria-pressed={onlyOnTime} onClick={() => setOnlyOnTime(!onlyOnTime)}>{t('search.onlyOnTime')}</button>
+          </div>
         </details>
       </section>
 
@@ -101,7 +119,7 @@ export function SearchView() {
           : !results?.length ? <p className="empty">{t('search.none')}</p>
           : <>
               <h3 className="rhead">{t('search.resultsTitle', { n: results.length })}<small>{name(q.from)} → {name(q.to)}</small></h3>
-              {results.slice(0, shown).map((j) => <JourneyCard key={j.legs.map((l) => l.run.key).join('+')} j={j} date={date} from={q.from!} to={q.to!} name={name} openTrain={openTrain} />)}
+              {results.slice(0, shown).map((x) => <JourneyCard key={x.j.legs.map((l) => l.run.key).join('+')} j={x.j} sts={x.sts} ds={x.ds} risk={x.risk} canceled={x.canceled} date={date} from={q.from!} to={q.to!} name={name} openTrain={openTrain} />)}
               {results.length > shown && <button className="btn wide" onClick={() => setShown(shown + 10)}>{t('common.more')}</button>}
             </>}
       </section>
@@ -109,18 +127,20 @@ export function SearchView() {
   );
 }
 
-function JourneyCard({ j, date, from, to, name, openTrain }: { j: Journey; date: string; from: string; to: string; name: (id: string) => string; openTrain: ReturnType<typeof useApp>['openTrain'] }) {
+function JourneyCard({ j, sts, ds, risk, canceled, date, from, to, name, openTrain }: { j: Journey; sts: Status[]; ds: number[]; risk: boolean; canceled: boolean; date: string; from: string; to: string; name: (id: string) => string; openTrain: ReturnType<typeof useApp>['openTrain'] }) {
   const { platforms } = useApp();
   const multi = j.legs.length > 1;
   return (
-    <article className="res" aria-label={`${fmt(j.dep)} → ${fmt(j.arr)}, ${duration(j.arr - j.dep)}, ${j.transfers ? t('search.transfer') : t('search.direct')}`}>
+    <article className={`res${canceled ? ' can' : ''}`} aria-label={`${fmt(j.dep)} → ${fmt(j.arr)}, ${duration(j.arr - j.dep)}, ${j.transfers ? t('search.transfer') : t('search.direct')}`}>
       <div className="top">
-        <div className="tms"><span className="tm">{fmt(j.dep)}</span><span aria-hidden="true">→</span><span className="tm">{fmt(j.arr)}</span></div>
-        <span className="dur">{duration(j.arr - j.dep)}</span>
+        <div className="tms">{ds[0] > 0 ? <span className="tm"><span className="strike small">{fmt(j.dep)}</span> <span className="real">{fmt(j.dep + ds[0])}</span></span> : <span className="tm">{fmt(j.dep)}</span>}<span aria-hidden="true">→</span>{ds[ds.length - 1] > 0 ? <span className="tm real">{fmt(j.arr + ds[ds.length - 1])}</span> : <span className="tm">{fmt(j.arr)}</span>}</div>
+        <span className="dur">{duration(j.arr + ds[ds.length - 1] - j.dep - ds[0])}</span>
       </div>
       <div className="meta">
         <span className={`tag ${j.transfers ? 'x' : 'd'}`}>{j.transfers ? t('search.transfer') : t('search.direct')}</span>
+        {sts.length === 1 && <StatusLabel s={sts[0]} long />}
       </div>
+      {risk && <p className="warnline" role="note">⚠ {t('rt.risk')}</p>}
       {j.legs.map((l, i) => (
         <div key={l.run.key}>
           {i === 1 && <div className="xfer">↪ {t('search.transferAt', { s: name(j.transferStation!), m: j.transferWait! })}</div>}
@@ -128,6 +148,7 @@ function JourneyCard({ j, date, from, to, name, openTrain }: { j: Journey; date:
             <div className="legtxt">
               <div><LineChip id={l.run.trip.l} /> <b>{t('common.direction', { d: name(destination(l.run)) })}</b></div>
               {platforms[platformKey(l.run, l.run.stations[l.from])!] && <span className="vianote">{t('platform.yoursAt', { v: platforms[platformKey(l.run, l.run.stations[l.from])!], s: name(l.run.stations[l.from]) })}</span>}
+              {multi && <StatusLabel s={sts[i]} long />}
               <small>{multi && <>{fmt(l.run.dep[l.from])} {name(l.run.stations[l.from])} → {fmt(l.run.arr[l.to])} {name(l.run.stations[l.to])} · </>}{t('common.train', { n: l.run.num })}</small>
             </div>
             <button className="btn sm" onClick={() => openTrain(l.run, date, i === 0 ? from : j.transferStation, i === j.legs.length - 1 ? to : j.transferStation)}>{t('common.route')}</button>

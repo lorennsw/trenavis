@@ -199,3 +199,58 @@ details.opts>.filters:first-of-type{margin-top:0}
 .via-row input{width:96px;flex:none;text-align:center;font:700 1.375rem "Space Grotesk",Inter,sans-serif}
 .via-row .btn{flex:1}
 .vianote{display:inline-block;font-size:.8125rem;font-weight:600;color:var(--co2)}
+/* ---- Estado en tiempo real ---- */
+.st{font-weight:600;font-size:.8125rem;white-space:nowrap}
+.st-ok{color:var(--ok)}.st-late{color:var(--red)}.st-can{color:var(--red);font-weight:700;text-transform:uppercase;letter-spacing:.02em}.st-mut{color:var(--mut);font-weight:500}
+.strike{text-decoration:line-through;color:var(--mut);font-weight:400}
+.real{color:var(--red);font-weight:700}
+.prow.can .ptm,.prow.can .pdst b{text-decoration:line-through;opacity:.7}
+.ptm .real{display:block;font-size:1rem}
+/* Mi tren y cinta */
+.ribbon{display:block;background:var(--zone);border-bottom:1px solid var(--line);padding:8px 16px;margin:12px -16px -12px;color:var(--ink);text-decoration:none;font-size:.9375rem}
+.ribbon .in{max-width:600px;margin:0 auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap;min-height:30px}
+.rmut{color:var(--mut)}.rgo{margin-left:auto;font-size:1.375rem;color:var(--mut)}
+.hero{background:var(--zone);border-radius:20px;padding:18px 16px;margin-top:10px}
+.hero-top{display:flex;gap:12px;align-items:center}
+.big{font:700 clamp(2.25rem,10vw,3.25rem)/1.05 "Space Grotesk",Inter,sans-serif;margin:14px 0 8px;font-variant-numeric:tabular-nums}
+.hero p{margin:0}
+.warnbox,.alertbox{border-radius:14px;padding:12px 14px;margin:12px 0;font-size:.9375rem;line-height:1.45}
+.warnbox{background:var(--red);color:#fff;font-weight:600}
+.alertbox{border:1px solid var(--red);background:var(--bg)}
+.stops .key.bad{color:var(--red)}
+.actions{margin-top:20px}.actions .btn{flex:1 1 auto}
+.btn.danger{color:var(--red);border-color:var(--red)}
+/* Línea en directo */
+.tchip{min-height:44px;border:1px solid var(--line);border-radius:999px;background:var(--bg);padding:0 10px;font:600 .8125rem Inter,sans-serif;cursor:pointer;display:inline-flex;gap:4px;align-items:center;color:var(--ink)}
+.tl{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.linediag li.mov{grid-template-columns:22px minmax(0,1fr);padding:4px 0}
+.linediag li.mov .tl{justify-content:flex-start}
+.lstate{margin:0 0 6px;font-size:.9375rem}
+.lstate.normal b{color:var(--ok)}.lstate.delays b,.lstate.incident b{color:var(--red)}.lstate.unknown b{color:var(--mut)}
+/* Mapa */
+.mapbox{height:min(62vh,520px);border-radius:16px;overflow:hidden;border:1px solid var(--line);margin-top:6px}
+.trainpin{display:flex!important;align-items:center;gap:2px}
+.trainpin span{color:#fff;font:700 12px Inter,sans-serif;border-radius:6px;padding:2px 5px;box-shadow:0 1px 4px rgb(0 0 0/.4);border:2px solid #fff}
+.trainpin i{font:700 11px Inter,sans-serif;font-style:normal;background:#c8180e;color:#fff;border-radius:6px;padding:1px 4px}
+.leaflet-container{font:inherit}
+details.alerts{margin:16px 0 0;border:1px solid var(--red);border-radius:14px;padding:4px 14px}
+details.alerts summary{min-height:44px;display:flex;align-items:center;font-weight:600;color:var(--red);cursor:pointer}
+details.alerts .alertbox{border:0;padding:6px 0;margin:0 0 8px}
+.ptm .strike{display:block;font-size:.875rem}
+.res .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.res.can{opacity:.75}
+.res.can .tms .tm{text-decoration:line-through}
+.strike.small{font-size:.9375rem}
+.warnline{margin:10px 0 0;color:var(--red);font-weight:600;font-size:.875rem}
+
+.lines{list-style:none;margin:0;padding:0}
+.lineh{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 0;cursor:pointer;min-height:64px;color:inherit;font:inherit}
+.lineh .n{flex:1;font-weight:600;display:flex;flex-direction:column;gap:2px}
+.lineh .n small{font-weight:400;margin:0}
+.lineh .lb{width:44px;height:44px}
+
+.lines{list-style:none;margin:0;padding:0}
+.lineh{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 0;cursor:pointer;min-height:64px;color:inherit;font:inherit}
+.lineh .n{flex:1;font-weight:600;display:flex;flex-direction:column;gap:2px}
+.lineh .n small{font-weight:400;margin:0}
+.lineh .lb{width:44px;height:44px}

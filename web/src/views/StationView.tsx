@@ -7,10 +7,12 @@ import { t } from '../i18n';
 import { StationPicker } from '../components/StationPicker';
 import { LineBadge } from '../components/LineBadge';
 import { platformKey } from '../core/platform';
+import { alertsForStation, delayOf, runStatus } from '../core/live';
+import { StatusLabel } from '../components/StatusLabel';
 import { LineFilter } from '../components/LineFilter';
 
 export function StationView() {
-  const { tt, linesByStation, favorites, toggleFavorite, platforms, now, openTrain } = useApp();
+  const { tt, linesByStation, favorites, toggleFavorite, platforms, now, openTrain, rt } = useApp();
   const [station, setStation] = usePersisted<string | null>('station', null);
   const [mode, setMode] = useState<'dep' | 'arr'>('dep');
   const [lines, setLines] = useState<Set<string>>(new Set());
@@ -19,7 +21,15 @@ export function StationView() {
   const isFav = !!station && favorites.includes(station);
   const stationLines = station ? linesByStation.get(station) ?? [] : [];
 
-  const rows = useMemo(() => station ? board(tt, station, now.date, now.min - 1, mode, limit, lines) : [], [tt, station, now.date, now.min, mode, limit, lines]);
+  // Se piden trenes desde 90 min antes para incluir los que salen tarde por retraso; se filtran por hora real
+  const rows = useMemo(() => {
+    if (!station) return [];
+    return board(tt, station, now.date, now.min - 90, mode, limit + 60, lines)
+      .map((r) => { const st = runStatus(r.run, rt, now.date, now.date, now.min); return { ...r, st, delay: delayOf(st) }; })
+      .filter((r) => r.time + r.delay >= now.min - 1 || (r.st.kind === 'canceled' && r.time >= now.min - 5))
+      .slice(0, limit);
+  }, [tt, station, now.date, now.min, mode, limit, lines, rt]);
+  const stationAlerts = station ? alertsForStation(station, stationLines.map((l) => tt.lines.get(l)!).filter(Boolean), rt.alerts) : [];
 
   return (
     <>
@@ -37,6 +47,11 @@ export function StationView() {
         <LineFilter all={stationLines} selected={lines} onChange={setLines} />
       </section>
 
+      {stationAlerts.length > 0 && (
+        <details className="alerts"><summary>⚠ {t('alerts.station')} ({stationAlerts.length})</summary>
+          {stationAlerts.map((a) => <p key={a.id} className="alertbox">{a.text.es}</p>)}</details>
+      )}
+      {station && rt.stale && <p className="hint" role="status">{t('rt.stale')}</p>}
       <section aria-live="polite" className="results">
         {!station ? <p className="empty">{t('station.pick')}</p>
           : !hasService(tt, now.date) ? <p className="empty">{t('nodata.day')}</p>
@@ -51,11 +66,11 @@ export function StationView() {
                   const other = name(mode === 'dep' ? destination(r.run) : origin(r.run));
                   const via = platforms[platformKey(r.run, station)!];
                   return (
-                    <button key={r.run.key} className="prow"
-                      aria-label={`${fmt(r.time)}, ${r.run.trip.l}, ${mode === 'dep' ? t('station.toDest') : t('station.fromOrig')} ${other}, ${t('common.train', { n: r.run.num })}, ${t('common.scheduled').toLowerCase()}${via ? `, ${t('platform.yours', { v: via })}` : ''}`}
+                    <button key={r.run.key} className={`prow${r.st.kind === 'canceled' ? ' can' : ''}`}
+                      aria-label={`${fmt(r.time)}, ${r.run.trip.l}, ${mode === 'dep' ? t('station.toDest') : t('station.fromOrig')} ${other}, ${t('common.train', { n: r.run.num })}, ${r.st.kind === 'late' ? t('status.lateLong', { m: r.delay }) : r.st.kind === 'canceled' ? t('status.canceled') : r.st.kind === 'ontime' ? t('status.ontime') : t('status.scheduled')}${via ? `, ${t('platform.yours', { v: via })}` : ''}`}
                       onClick={() => openTrain(r.run, now.date, mode === 'dep' ? station : undefined, mode === 'arr' ? station : undefined)}>
-                      <span className="ptm">{fmt(r.time)}</span>
-                      <span className="pdst"><b>{other}</b><small>{t('common.train', { n: r.run.num })}</small></span>
+                      <span className="ptm">{r.delay > 0 ? <><span className="strike">{fmt(r.time)}</span><span className="real">{fmt(r.time + r.delay)}</span></> : fmt(r.time)}</span>
+                      <span className="pdst"><b>{other}</b><small>{t('common.train', { n: r.run.num })} · <StatusLabel s={r.st} /></small></span>
                       <LineBadge id={r.run.trip.l} />
                       <span className={`pvia${via ? ' set' : ''}`}>{via ? <><b>{via}</b><small>{t('platform.note')}</small></> : '–'}</span>
                     </button>
