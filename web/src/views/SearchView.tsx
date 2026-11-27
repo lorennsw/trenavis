@@ -137,7 +137,7 @@ function JourneyCard({ j, sts, ds, risk, canceled, date, from, to, name, openTra
         <span className="dur">{duration(j.arr + ds[ds.length - 1] - j.dep - ds[0])}</span>
       </div>
       <div className="meta">
-        <span className={`tag ${j.transfers ? 'x' : 'd'}`}>{j.transfers ? t('search.transfer') : t('search.direct')}</span>
+        <span className={`tag ${j.transfers ? 'tag-xfer' : 'tag-direct'}`}>{j.transfers ? t('search.transfer') : t('search.direct')}</span>
         {sts.length === 1 && <StatusLabel s={sts[0]} long />}
       </div>
       {risk && <p className="warnline" role="note">⚠ {t('rt.risk')}</p>}

@@ -8,5 +8,5 @@ export const TITULAR = {
   domicilio: '[pendiente: domicilio]',
   email: '[pendiente: correo de contacto]',
 };
-export const LEGAL_UPDATED = '27 de noviembre de 2026';
+export const LEGAL_UPDATED = '27 de noviembre de 2026 (app de Android)';
 export const APP_URL = 'https://trenavis.lorennsw.workers.dev/';

@@ -32,7 +32,8 @@ export function AlarmForm({ initial, onSave, onCancel }: { initial: Alarm | null
 
   const problem = !from || !to ? t('alarms.pickStations') : from === to ? t('search.same') : time === null ? t('search.timeBad')
     : !days.length ? t('alarms.noDays') : null;
-  const canSave = !problem && !!next?.plan;
+  // Se puede guardar aunque el próximo día no tenga horarios publicados: el aviso vale para los demás días
+  const canSave = !problem && !!next;
   const toggleDay = (d: number) => setDays((l) => (l.includes(d) ? l.filter((x) => x !== d) : [...l, d]));
   const p = next?.plan;
 
