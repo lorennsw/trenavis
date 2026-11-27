@@ -1,7 +1,7 @@
 {
   "name": "TrenAvís · Rodalies de Catalunya",
   "short_name": "TrenAvís",
-  "description": "Horarios, trenes en directo y alarmas de Rodalies de Catalunya. App no oficial.",
+  "description": "Horarios, trenes en directo y avisos de salida de Rodalies de Catalunya. App no oficial.",
   "lang": "es",
   "start_url": "./",
   "scope": "./",
