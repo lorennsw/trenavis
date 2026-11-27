@@ -9,4 +9,4 @@ export const TITULAR = {
   email: '[pendiente: correo de contacto]',
 };
 export const LEGAL_UPDATED = '27 de noviembre de 2026';
-export const APP_URL = 'https://lorennsw.github.io/trenavis/';
+export const APP_URL = 'https://trenavis.lorennsw.workers.dev/';

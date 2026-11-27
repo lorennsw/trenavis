@@ -1,8 +1,8 @@
-name: Publicar web en GitHub Pages
+name: Redirección de la dirección antigua (GitHub Pages)
 on:
   push:
     branches: [main]
-    paths: ['web/**', 'shared/**', 'package.json', 'package-lock.json', '.github/workflows/pages.yml']
+    paths: ['tools/build-redirect.ts', '.github/workflows/pages.yml']
   workflow_dispatch:
 permissions:
   contents: read
@@ -17,11 +17,9 @@ jobs:
       - uses: actions/setup-node@v5
         with: { node-version: 22 }
       - run: npm ci
-      - run: npm test
-      - run: npm run build
-        env: { BASE_PATH: /trenavis/ }
+      - run: npx tsx tools/build-redirect.ts dist-redirect
       - uses: actions/upload-pages-artifact@v3
-        with: { path: dist }
+        with: { path: dist-redirect }
   deploy:
     needs: build
     runs-on: ubuntu-latest

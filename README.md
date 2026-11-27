@@ -3,7 +3,9 @@
 **Horarios, trenes en directo y avisos de salida para Rodalies de Catalunya.**
 App web instalable (PWA), gratis, sin anuncios y sin cuentas.
 
-👉 **Abrir la app:** https://lorennsw.github.io/trenavis/
+👉 **Abrir la app:** https://trenavis.lorennsw.workers.dev
+
+(La dirección antigua, lorennsw.github.io/trenavis, redirige aquí y copia tus datos.)
 
 > TrenAvís es una **app no oficial**, sin relación con Renfe, Adif ni la Generalitat de Catalunya.
 > Los datos pueden tener errores o faltar trenes: comprueba siempre la información oficial.
@@ -24,7 +26,7 @@ App web instalable (PWA), gratis, sin anuncios y sin cuentas.
 
 | Pieza | Qué hace | Dónde |
 |---|---|---|
-| **Web (PWA)** | La app que ves. Vite + React + TypeScript. | `web/` → GitHub Pages |
+| **Web (PWA)** | La app que ves. Vite + React + TypeScript. | `web/` → Cloudflare (`app-host/`) |
 | **API (Worker)** | Sirve horarios y tiempo real, guarda las notificaciones y las envía cada minuto. | `worker/` → Cloudflare Workers |
 | **Datos** | Cada día descarga el GTFS de Renfe, filtra Rodalies y lo sube a Cloudflare. | `tools/` + GitHub Actions |
 | **Base de datos** | Suscripciones push y datos mínimos de los avisos. | Cloudflare D1 |
@@ -89,7 +91,7 @@ primera vez que se despliega. No hay que generarlos a mano.
 
 1. En tu repositorio: **Settings → Secrets and variables → Actions → New repository secret**
    → nombre `CLOUDFLARE_API_TOKEN` → pega el token. (Nunca lo pegues en el código ni en un chat.)
-2. **Settings → Pages → Source: GitHub Actions** (para publicar la web).
+2. (Opcional) **Settings → Pages → Source: GitHub Actions**: solo para la redirección desde la dirección antigua.
 3. Si tu usuario no es `lorennsw`, cambia la dirección de la API en `web/src/api.ts` y la web en `web/src/legal/config.ts`
    y en `worker/src/push.ts` (`SUBJECT`).
 
@@ -97,7 +99,8 @@ primera vez que se despliega. No hay que generarlos a mano.
 
 - **API y datos**: pestaña **Actions → "Desplegar Worker y actualizar datos GTFS" → Run workflow**.
   Después se ejecuta solo **cada día** y cada vez que cambias `worker/` o `tools/`.
-- **Web**: se publica sola en cada cambio a `main` (workflow "Publicar web en GitHub Pages").
+- **Web**: se publica sola en Cloudflare en cada cambio a `main` (workflow "Publicar web en Cloudflare").
+  GitHub Pages solo sirve una redirección desde la dirección antigua.
 - **Municipios y pueblos** (OpenStreetMap): workflow mensual "Actualizar municipios y lugares". Puedes lanzarlo a mano.
 
 ### 7. Rellenar los datos legales

@@ -66,7 +66,7 @@ export function NotificationsSettings() {
         <Sheet title={t('notif.howInstall')} onClose={() => setGuide(false)}>
           <h4>iPhone / iPad (iOS 16.4 o superior)</h4>
           <ol className="guide">
-            <li>Abre <b>lorennsw.github.io/trenavis</b> en <b>Safari</b>.</li>
+            <li>Abre <b>trenavis.lorennsw.workers.dev</b> en <b>Safari</b>.</li>
             <li>Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li>
             <li>Elige <b>«Añadir a pantalla de inicio»</b> y toca <b>Añadir</b>.</li>
             <li>Abre TrenAvís <b>desde el icono</b> de la pantalla de inicio.</li>

@@ -4,5 +4,5 @@
     "strict": true, "skipLibCheck": true, "noEmit": true, "allowImportingTsExtensions": true, "resolveJsonModule": true,
     "lib": ["ES2022"], "types": ["@cloudflare/workers-types", "node"]
   },
-  "include": ["tools", "worker/src", "shared"]
+  "include": ["tools", "worker/src", "shared", "app-host/src"]
 }
