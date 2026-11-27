@@ -1,18 +1,13 @@
 /** Normaliza el GTFS-Realtime JSON de Renfe y lo reduce a Rodalies de Catalunya. */
 
+import type { Alert, TripUpdate, Vehicle } from '../../shared/realtime-types.ts';
+export type { Alert, TripUpdate, Vehicle };
+
 export const RT_BASE = 'https://gtfsrt.renfe.com';
 const isRodaliesTrip = (id: string) => id.startsWith('51');
 const isRodaliesRoute = (id: string) => id.trim().startsWith('51T');
 const num = (v: unknown) => (v === undefined || v === null ? undefined : Number(v));
 
-export interface TripUpdate {
-  tripId: string;
-  delay: number | null;          // segundos (positivo = retraso)
-  canceled: boolean;
-  stops: { stopId: string; arrival?: number; departure?: number; arrivalDelay?: number; departureDelay?: number }[];
-}
-export interface Vehicle { tripId: string; lat: number; lon: number; status?: string; stopId?: string; label?: string; timestamp?: number }
-export interface Alert { id: string; routeIds: string[]; stopIds: string[]; start?: number; end?: number; text: { es?: string; ca?: string } }
 
 export function normalizeTripUpdates(json: any): TripUpdate[] {
   return (json?.entity ?? [])
@@ -27,6 +22,7 @@ export function normalizeTripUpdates(json: any): TripUpdate[] {
           stopId: s.stopId,
           arrival: num(s.arrival?.time), departure: num(s.departure?.time),
           arrivalDelay: num(s.arrival?.delay), departureDelay: num(s.departure?.delay),
+          ...(s.scheduleRelationship === 'SKIPPED' ? { skipped: true } : {}),
         })),
       };
     });

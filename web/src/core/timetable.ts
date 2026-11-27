@@ -89,6 +89,6 @@ export function board(tt: Timetable, station: string, date: string, fromMin: num
 export function scheduledPosition(run: Run, nowMin: number, delay = 0): { cur: number; atStation: boolean; finished: boolean; started: boolean } {
   let cur = -1;
   for (let i = 0; i < run.stations.length; i++) if (run.arr[i] + delay <= nowMin) cur = i;
-  const atStation = cur >= 0 && nowMin < run.dep[cur] + delay;
+  const atStation = cur >= 0 && nowMin <= run.dep[cur] + delay; // durante el minuto de salida aún está en el andén
   return { cur, atStation, finished: cur === run.stations.length - 1, started: cur >= 0 };
 }

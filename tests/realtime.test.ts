@@ -7,8 +7,11 @@ describe('normalización GTFS-RT', () => {
       { tripUpdate: { trip: { tripId: '5129J15013R15' }, delay: 4200, stopTimeUpdate: [{ stopId: '71503', arrival: { delay: 4200, time: '1795711086' } }] } },
       { tripUpdate: { trip: { tripId: '3029J18779C3' }, delay: 0 } },
       { tripUpdate: { trip: { tripId: '5129J1X', scheduleRelationship: 'CANCELED' } } },
+      { tripUpdate: { trip: { tripId: '5129J2X' }, stopTimeUpdate: [{ stopId: '79100', scheduleRelationship: 'SKIPPED' }] } },
     ] });
-    expect(r.map((x) => x.tripId)).toEqual(['5129J15013R15', '5129J1X']);
+    expect(r.map((x) => x.tripId)).toEqual(['5129J15013R15', '5129J1X', '5129J2X']);
+    expect(r[2].stops[0].skipped).toBe(true);
+    expect(r[0].stops[0].skipped).toBeUndefined();
     expect(r[0].delay).toBe(4200);
     expect(r[0].stops[0].arrival).toBe(1795711086);
     expect(r[1].canceled).toBe(true);
