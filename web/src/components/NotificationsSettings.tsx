@@ -39,12 +39,12 @@ export function NotificationsSettings() {
   return (
     <>
       <h3>{t('notif.title')}</h3>
+      {!isStandalone() && <button className="btn wide install" onClick={() => setGuide(true)}>📲 {t('notif.howInstall')}</button>}
       {server === false ? (
         <div className="info"><p style={{ margin: 0 }}>{t('notif.serverOff')}</p></div>
       ) : !supported ? (
         <div className="info">
           <p style={{ margin: 0 }}>{iosNeedsInstall ? t('notif.iosInstall') : t('notif.unsupported')}</p>
-          <button className="btn sm" style={{ marginTop: 10 }} onClick={() => setGuide(true)}>{t('notif.howInstall')}</button>
         </div>
       ) : (
         <>
@@ -56,7 +56,6 @@ export function NotificationsSettings() {
           </div>
           {(prefs.follow || prefs.alarms) && syncOk === false && <p className="hint bad" role="alert">{t('notif.syncFail')}</p>}
           <p className="hint">{t('notif.privacy')}</p>
-          <button className="linkbtn" onClick={() => setGuide(true)}>{t('notif.howInstall')}</button>
         </>
       )}
       {msg && <p className="hint" role="status">{msg}</p>}
