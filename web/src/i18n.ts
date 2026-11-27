@@ -88,6 +88,8 @@ const es = {
   'alerts.station': 'Incidencias que afectan a esta estación', 'alerts.follow': 'Incidencia en tu línea',
   'install.title': 'Instala TrenAvís', 'install.why': 'Con su icono, a pantalla completa y con notificaciones.', 'install.go': 'Instalar', 'install.close': 'Cerrar',
   'install.button': 'Instalar TrenAvís', 'install.done': 'TrenAvís ya está instalada en este dispositivo.',
+  'theme.title': 'Tema', 'theme.auto': 'Automático', 'theme.light': 'Claro', 'theme.dark': 'Oscuro',
+  'theme.hint': 'Automático sigue el modo claro u oscuro de tu móvil.',
   'notif.title': 'Notificaciones', 'notif.follow': 'Retrasos del tren que sigo', 'notif.followDesc': 'Si cambia el retraso, se cancela o vuelve a ir a su hora',
   'notif.alarms': 'Avisos de salida', 'notif.alarmsDesc': 'Te aviso cuándo salir de casa, con el retraso real',
   'notif.system': 'Notificaciones del sistema', 'notif.perm.granted': 'Permiso concedido', 'notif.perm.denied': 'Bloqueadas en este navegador',
