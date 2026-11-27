@@ -160,15 +160,16 @@ input[aria-invalid=true]{border-color:var(--red)}
 details.opts>.filters:first-of-type{margin-top:0}
 
 /* ---- Panel de andén (inspirado en los paneles de estación; colores propios) ---- */
-:root{--pb:#0e1b3a;--pb2:#132550;--pbh:#0a1430;--pbt:#ffffff;--pbm:#a9c1ff;--pbl:#24335c}
-.pboard{border-radius:18px;overflow:hidden;background:var(--pb);color:var(--pbt)}
+/* Colores del panel = colores de TrenAvís (siguen el modo claro/oscuro) */
+:root{--pb:var(--bg);--pb2:var(--zone);--pbh:var(--co);--pbt:var(--ink);--pbm:var(--mut);--pbl:var(--line)}
+.pboard{border-radius:18px;overflow:hidden;background:var(--pb);color:var(--pbt);border:1px solid var(--line)}
 .phead,.prow{display:grid;grid-template-columns:72px minmax(0,1fr) 64px;gap:12px;align-items:center;padding:0 14px}
-.phead{background:var(--pbh);min-height:44px;font-size:.8125rem;font-weight:700;letter-spacing:.02em}
+.phead{background:var(--pbh);color:#fff;min-height:44px;font-size:.8125rem;font-weight:700;letter-spacing:.02em}
 .phead span:last-child{text-align:center}
 .prow{width:100%;min-height:76px;border:0;border-top:1px solid var(--pbl);background:var(--pb);color:inherit;text-align:left;cursor:pointer;font:inherit}
 .prow:nth-of-type(odd){background:var(--pb2)}
-.prow:hover{filter:brightness(1.12)}
-.prow:focus-visible{outline:3px solid #fff;outline-offset:-4px}
+.prow:hover{background:var(--line)}
+.prow:focus-visible{outline:3px solid var(--co2);outline-offset:-4px}
 .ptm{font:700 1.25rem "Space Grotesk",Inter,sans-serif;font-variant-numeric:tabular-nums}
 .pdst{display:flex;flex-direction:column;gap:2px;line-height:1.2}
 .pdst b{font:700 1.125rem "Space Grotesk",Inter,sans-serif}
@@ -189,7 +190,7 @@ details.opts>.filters:first-of-type{margin-top:0}
 .phead,.prow{grid-template-columns:64px minmax(0,1fr) 56px 44px;gap:10px;padding:0 12px}
 .phead span:nth-child(4){text-align:center}
 .pvia{justify-self:center;display:flex;flex-direction:column;align-items:center;line-height:1;color:var(--pbm);font-size:1.125rem}
-.pvia.set b{font:700 1.5rem "Space Grotesk",Inter,sans-serif;color:#fff}
+.pvia.set b{font:700 1.5rem "Space Grotesk",Inter,sans-serif;color:var(--co2)}
 .pvia small{font-size:.6875rem;color:var(--pbm);margin-top:2px;white-space:nowrap}
 .lb{width:50px;height:50px}
 .via-ed{margin-top:22px;padding:14px 16px 6px;border-radius:16px;background:var(--zone)}
