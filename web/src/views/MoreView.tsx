@@ -4,6 +4,7 @@ import { alertsForLine, lineState } from '../core/live';
 import { runsOn } from '../core/timetable';
 import { t, type Key } from '../i18n';
 import { LineBadge } from '../components/LineBadge';
+import { NotificationsSettings } from '../components/NotificationsSettings';
 
 const ymd = (s: string) => `${s.slice(6, 8)}/${s.slice(4, 6)}/${s.slice(0, 4)}`;
 
@@ -33,6 +34,7 @@ export function MoreView() {
         })}
       </ul>
       <button className="btn wide" style={{ marginTop: 14 }} onClick={() => openMap()}>🗺 {t('map.title')}</button>
+      <NotificationsSettings />
       <h3>{t('more.data')}</h3>
       <div className="menu">
         <p>{t('more.source')}</p>

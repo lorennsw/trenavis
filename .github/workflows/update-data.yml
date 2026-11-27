@@ -17,6 +17,7 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: Base de datos D1
+        id: d1
         run: bash tools/ensure-d1.sh
       - name: Desplegar Worker
         run: npx wrangler deploy --config worker/wrangler.toml
@@ -27,3 +28,9 @@ jobs:
       - run: npx tsx tools/make-kv-bulk.ts
       - name: Subir datos al KV
         run: npx wrangler kv bulk put data/out/kv-bulk.json --binding DATA --config worker/wrangler.toml
+      - name: Avisos – claves y planificación de alarmas
+        if: steps.d1.outputs.d1 == 'yes'
+        run: |
+          TOKEN=$(npx tsx tools/ensure-secrets.ts)
+          echo "::add-mask::$TOKEN"
+          ADMIN_TOKEN="$TOKEN" npx tsx tools/plan-alarms.ts

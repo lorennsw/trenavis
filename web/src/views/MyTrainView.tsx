@@ -7,6 +7,7 @@ import { platformKey } from '../core/platform';
 import { t } from '../i18n';
 import { LineBadge } from '../components/LineBadge';
 import { StatusLabel } from '../components/StatusLabel';
+import { load } from '../store';
 
 export function MyTrainView() {
   const { tt, follow, setFollow, rt, now, openTrain, openLine, platforms } = useApp();
@@ -46,6 +47,7 @@ export function MyTrainView() {
         {rt.stale && <p className="hint">{t('rt.stale')}</p>}
       </section>
 
+      {!load('notif', { follow: false, alarms: false }).follow && <p className="hint"><a href="#mas">{t('notif.hintFollow')}</a></p>}
       {alerts.map((al) => <p key={al.id} className="alertbox" role="note"><b>{t('alerts.follow')}:</b> {al.text.es}</p>)}
 
       <ol className="stops" aria-label={t('train.stops')}>

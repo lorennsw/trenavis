@@ -4,6 +4,8 @@ import { EMPTY_RT, type RTState } from './core/live';
 import { LineSheet } from './components/LineSheet';
 import { FollowRibbon } from './components/FollowRibbon';
 import { MyTrainView } from './views/MyTrainView';
+import { usePushSync } from './usePushSync';
+import { registerSW } from './push';
 import { Ctx, type AppData, type Follow } from './context';
 import { compareLines } from './core/lines';
 import { madridNow, fmt } from './core/time';
@@ -111,6 +113,8 @@ export function App() {
     };
   }, [state, favorites, setFavorites, platforms, setPlatforms, now, rt, followActive, setFollowRaw]);
 
+  usePushSync(data);
+  useEffect(() => { registerSW(); }, []);
   const cur = TABS.find((x) => x.id === tab)!;
   return (
     <>

@@ -8,6 +8,7 @@ import { LineChip } from '../components/LineChip';
 import { Sheet } from '../components/Sheet';
 import { AlarmForm } from '../components/AlarmForm';
 import { dayName } from '../components/dayName';
+import { load } from '../store';
 
 export function AlarmsView() {
   const [alarms, setAlarms] = usePersisted<Alarm[]>('alarms', []);
@@ -18,7 +19,7 @@ export function AlarmsView() {
   return (
     <>
       <button className="btn pri wide" onClick={() => setEditing('new')}>{t('alarms.add')}</button>
-      <p className="hint">{t('alarms.notifSoon')}</p>
+      {!load('notif', { follow: false, alarms: false }).alarms && <p className="hint"><a href="#mas">{t('notif.hintAlarms')}</a></p>}
       {alarms.length === 0 ? <p className="empty">{t('alarms.empty')}</p>
         : <div className="results">{alarms.map((a) => (
             <AlarmCard key={a.id} a={a} onToggle={() => setAlarms((l) => l.map((x) => (x.id === a.id ? { ...x, on: !x.on } : x)))}
