@@ -108,10 +108,29 @@ primera vez que se despliega. No hay que generarlos a mano.
 Edita `web/src/legal/config.ts` con el **nombre, documento, domicilio y correo** del titular (aparecen en el aviso legal y
 la política de privacidad). Ten en cuenta que el domicilio será público.
 
-### 8. Instalar la app en el móvil
+### 8. App de Android (independiente, con notificaciones por Firebase)
 
-- **Android (Chrome)**: abre la web → toca **"Instalar"** en el aviso de arriba (o en **Más → Notificaciones**).
-  Queda en el cajón de apps con su icono.
+La carpeta `android/` es la app de Android hecha con **Capacitor**: lleva la web dentro y no necesita Chrome.
+GitHub la compila sola (workflow "App Android") y publica el **APK** (instalar directamente) y el **AAB** (Google Play)
+en **Releases**. La firma se guarda en Cloudflare y es siempre la misma, así que cada versión se instala encima.
+
+Para que la app tenga notificaciones hace falta **Firebase** (gratis):
+1. https://console.firebase.google.com → Crear proyecto (sin Google Analytics).
+2. Añadir app **Android** con el paquete `io.github.lorennsw.trenavis` → descargar `google-services.json`.
+3. Configuración del proyecto → Cuentas de servicio → **Generar nueva clave privada** (archivo secreto).
+4. En GitHub → Settings → Secrets → Actions: `GOOGLE_SERVICES_JSON` (contenido de `google-services.json`) y
+   `FIREBASE_SERVICE_ACCOUNT` (contenido de la clave privada).
+5. Lanzar los workflows "Desplegar Worker…" (pasa la clave al servidor) y "App Android".
+
+Publicar en Google Play: guía completa en `store/PLAY_STORE.md` (textos, capturas, formularios y prueba cerrada).
+
+**iPhone**: sin cuenta de Apple Developer (99 $/año) no se puede instalar una app en iPhone fuera de la App Store.
+En iPhone se usa la web con «Añadir a pantalla de inicio» (con notificaciones, iOS 16.4+).
+
+### 9. Instalar la app en el móvil
+
+- **Android**: descarga el **APK** de la última versión en https://github.com/lorennsw/trenavis/releases y ábrelo
+  (permite «instalar apps de origen desconocido»). O desde Chrome, toca **«Instalar»** en la web.
 - **iPhone (Safari, iOS 16.4+)**: abre la web en Safari → **Compartir** → **Añadir a pantalla de inicio** → ábrela desde el icono.
   En iPhone las notificaciones **solo** funcionan así.
 - Después: **Más → Notificaciones** para activar las notificaciones.
@@ -122,6 +141,9 @@ la política de privacidad). Ten en cuenta que el domicilio será público.
 
 ```
 web/            App (React). core/ = lógica pura probada con tests (horarios, búsqueda, tiempo real, avisos)
+android/        App de Android (Capacitor). capacitor.config.ts = su configuración
+app-host/       Sirve la web en Cloudflare (trenavis.lorennsw.workers.dev)
+store/          Material y guía para Google Play
 worker/         API en Cloudflare Workers (datos, tiempo real, notificaciones push, cron)
 tools/          Scripts: conversión GTFS, informe de calidad, OSM, planificación de avisos, páginas legales
 shared/         Tipos compartidos entre web y Worker
@@ -153,6 +175,7 @@ docs/           Fases, informe de calidad de datos, solicitud a Adif, encargo or
 | typescript, tsx | Tipos y ejecutar scripts | Apache-2.0 / MIT |
 | vitest | Tests | MIT |
 | wrangler, @cloudflare/workers-types | Desplegar y probar el Worker | MIT / Apache-2.0 |
+| @capacitor/* | App de Android (visor, notificaciones, pantalla de inicio, barra de estado, botón atrás) | MIT |
 | axe-core | Revisión de accesibilidad (solo desarrollo) | MPL-2.0 |
 
 Sin analítica, sin publicidad y sin SDKs de terceros. Las notificaciones push se cifran sin librerías externas
