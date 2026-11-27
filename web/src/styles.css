@@ -185,3 +185,16 @@ details.opts>.filters:first-of-type{margin-top:0}
 .btn.star.big svg{width:30px;height:30px;fill:none;stroke:currentColor;stroke-width:2;stroke-linejoin:round}
 .btn.star.big[aria-pressed=true]{border-color:#c98a00;color:#c98a00}
 .btn.star.big[aria-pressed=true] svg{fill:currentColor}
+/* Tu vía */
+.phead,.prow{grid-template-columns:64px minmax(0,1fr) 56px 44px;gap:10px;padding:0 12px}
+.phead span:nth-child(4){text-align:center}
+.pvia{justify-self:center;display:flex;flex-direction:column;align-items:center;line-height:1;color:var(--pbm);font-size:1.125rem}
+.pvia.set b{font:700 1.5rem "Space Grotesk",Inter,sans-serif;color:#fff}
+.pvia small{font-size:.6875rem;color:var(--pbm);margin-top:2px;white-space:nowrap}
+.lb{width:50px;height:50px}
+.via-ed{margin-top:22px;padding:14px 16px 6px;border-radius:16px;background:var(--zone)}
+.via-ed h4{margin:0;font-size:1.0625rem}
+.via-row{display:flex;gap:10px}
+.via-row input{width:96px;flex:none;text-align:center;font:700 1.375rem "Space Grotesk",Inter,sans-serif}
+.via-row .btn{flex:1}
+.vianote{display:inline-block;font-size:.8125rem;font-weight:600;color:var(--co2)}

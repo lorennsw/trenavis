@@ -9,6 +9,7 @@ import { t } from '../i18n';
 import { StationPicker } from '../components/StationPicker';
 import { LineChip } from '../components/LineChip';
 import { LineFilter } from '../components/LineFilter';
+import { platformKey } from '../core/platform';
 
 export function SearchView() {
   const { tt, meta, lineIds, now, openTrain } = useApp();
@@ -109,6 +110,7 @@ export function SearchView() {
 }
 
 function JourneyCard({ j, date, from, to, name, openTrain }: { j: Journey; date: string; from: string; to: string; name: (id: string) => string; openTrain: ReturnType<typeof useApp>['openTrain'] }) {
+  const { platforms } = useApp();
   const multi = j.legs.length > 1;
   return (
     <article className="res" aria-label={`${fmt(j.dep)} → ${fmt(j.arr)}, ${duration(j.arr - j.dep)}, ${j.transfers ? t('search.transfer') : t('search.direct')}`}>
@@ -125,6 +127,7 @@ function JourneyCard({ j, date, from, to, name, openTrain }: { j: Journey; date:
           <div className="leg">
             <div className="legtxt">
               <div><LineChip id={l.run.trip.l} /> <b>{t('common.direction', { d: name(destination(l.run)) })}</b></div>
+              {platforms[platformKey(l.run, l.run.stations[l.from])!] && <span className="vianote">{t('platform.yoursAt', { v: platforms[platformKey(l.run, l.run.stations[l.from])!], s: name(l.run.stations[l.from]) })}</span>}
               <small>{multi && <>{fmt(l.run.dep[l.from])} {name(l.run.stations[l.from])} → {fmt(l.run.arr[l.to])} {name(l.run.stations[l.to])} · </>}{t('common.train', { n: l.run.num })}</small>
             </div>
             <button className="btn sm" onClick={() => openTrain(l.run, date, i === 0 ? from : j.transferStation, i === j.legs.length - 1 ? to : j.transferStation)}>{t('common.route')}</button>

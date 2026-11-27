@@ -6,10 +6,11 @@ import { fmt } from '../core/time';
 import { t } from '../i18n';
 import { StationPicker } from '../components/StationPicker';
 import { LineBadge } from '../components/LineBadge';
+import { platformKey } from '../core/platform';
 import { LineFilter } from '../components/LineFilter';
 
 export function StationView() {
-  const { tt, linesByStation, favorites, toggleFavorite, now, openTrain } = useApp();
+  const { tt, linesByStation, favorites, toggleFavorite, platforms, now, openTrain } = useApp();
   const [station, setStation] = usePersisted<string | null>('station', null);
   const [mode, setMode] = useState<'dep' | 'arr'>('dep');
   const [lines, setLines] = useState<Set<string>>(new Set());
@@ -41,20 +42,22 @@ export function StationView() {
           : !hasService(tt, now.date) ? <p className="empty">{t('nodata.day')}</p>
           : !rows.length ? <p className="empty">{t('station.none')}</p>
           : <>
-              <p className="sub">{t('station.tap')}</p>
+              <p className="sub">{t('station.tap')} {t('platform.hint')}</p>
               <div className="pboard">
                 <div className="phead" aria-hidden="true">
-                  <span>{t('station.col.time')}</span><span>{mode === 'dep' ? t('station.toDest') : t('station.fromOrig')}</span><span>{t('station.col.line')}</span>
+                  <span>{t('station.col.time')}</span><span>{mode === 'dep' ? t('station.toDest') : t('station.fromOrig')}</span><span>{t('station.col.line')}</span><span>{t('station.col.platform')}</span>
                 </div>
                 {rows.map((r) => {
                   const other = name(mode === 'dep' ? destination(r.run) : origin(r.run));
+                  const via = platforms[platformKey(r.run, station)!];
                   return (
                     <button key={r.run.key} className="prow"
-                      aria-label={`${fmt(r.time)}, ${r.run.trip.l}, ${mode === 'dep' ? t('station.toDest') : t('station.fromOrig')} ${other}, ${t('common.train', { n: r.run.num })}, ${t('common.scheduled').toLowerCase()}`}
+                      aria-label={`${fmt(r.time)}, ${r.run.trip.l}, ${mode === 'dep' ? t('station.toDest') : t('station.fromOrig')} ${other}, ${t('common.train', { n: r.run.num })}, ${t('common.scheduled').toLowerCase()}${via ? `, ${t('platform.yours', { v: via })}` : ''}`}
                       onClick={() => openTrain(r.run, now.date, mode === 'dep' ? station : undefined, mode === 'arr' ? station : undefined)}>
                       <span className="ptm">{fmt(r.time)}</span>
-                      <span className="pdst"><b>{other}</b><small>{t('common.train', { n: r.run.num })} · {t('common.scheduled').toLowerCase()}</small></span>
+                      <span className="pdst"><b>{other}</b><small>{t('common.train', { n: r.run.num })}</small></span>
                       <LineBadge id={r.run.trip.l} />
+                      <span className={`pvia${via ? ' set' : ''}`}>{via ? <><b>{via}</b><small>{t('platform.note')}</small></> : '–'}</span>
                     </button>
                   );
                 })}
