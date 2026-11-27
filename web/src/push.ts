@@ -16,7 +16,15 @@ export const permission = (): NotificationPermission | 'unsupported' => (pushSup
 let regPromise: Promise<ServiceWorkerRegistration | null> | null = null;
 export function registerSW(): Promise<ServiceWorkerRegistration | null> {
   if (!('serviceWorker' in navigator)) return Promise.resolve(null);
-  return regPromise ??= navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL }).catch(() => null);
+  return regPromise ??= navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL })
+    .then(async (reg) => {
+      // Guardar para uso sin conexión los ficheros de la app ya cargados
+      const sw = (await navigator.serviceWorker.ready).active;
+      const urls = performance.getEntriesByType('resource').map((e) => e.name).filter((u) => u.startsWith(location.origin) && /\/assets\/|\.(png|svg|webmanifest)$/.test(u));
+      sw?.postMessage({ type: 'cache-urls', urls: [location.href.split('#')[0], ...urls] });
+      return reg;
+    })
+    .catch(() => null);
 }
 
 export async function currentSubscription(): Promise<PushSubscription | null> {

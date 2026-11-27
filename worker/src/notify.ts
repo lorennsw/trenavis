@@ -32,7 +32,7 @@ export function decide(now: number, plans: PlanRow[], follows: FollowRow[], rt: 
     const delay = Math.max(0, info?.delay ?? 0);
     if (info?.canceled) {
       if (now >= p.notify_at - 3600 && now <= p.dep_at) {
-        d.sends.push({ sub_id: p.sub_id, msg: { title: `Tu tren de las ${hhmm(p.dep_at)} está cancelado`, body: `${p.label}. Abre TrenAvís para buscar otra opción.`, tag: `alarm-${p.alarm_id}`, url: '#alarmas' } });
+        d.sends.push({ sub_id: p.sub_id, msg: { title: `Tu tren de las ${hhmm(p.dep_at)} está cancelado`, body: `${p.label}. Abre TrenAvís para buscar otra opción.`, tag: `alarm-${p.alarm_id}`, url: '#avisos' } });
         d.planUpdates.push({ sub_id: p.sub_id, alarm_id: p.alarm_id, date: p.date, sent: SENT.canceledSent });
       }
       continue;
@@ -42,7 +42,7 @@ export function decide(now: number, plans: PlanRow[], follows: FollowRow[], rt: 
     if (now > due + LATE_WINDOW) { d.planUpdates.push({ sub_id: p.sub_id, alarm_id: p.alarm_id, date: p.date, sent: SENT.missed }); continue; }
     const title = p.lead > 0 ? `Sal de casa en ${p.lead} min` : '¡Sal ya de casa!';
     const body = `${p.label} · sale a las ${hhmm(p.dep_at + delay * 60)}${delay > ONTIME_MAX ? ` (+${delay} min)` : ''}`;
-    d.sends.push({ sub_id: p.sub_id, msg: { title, body, tag: `alarm-${p.alarm_id}`, url: '#alarmas' } });
+    d.sends.push({ sub_id: p.sub_id, msg: { title, body, tag: `alarm-${p.alarm_id}`, url: '#avisos' } });
     d.planUpdates.push({ sub_id: p.sub_id, alarm_id: p.alarm_id, date: p.date, sent: SENT.sent });
   }
 

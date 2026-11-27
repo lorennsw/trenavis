@@ -6,6 +6,7 @@ import { FollowRibbon } from './components/FollowRibbon';
 import { MyTrainView } from './views/MyTrainView';
 import { usePushSync } from './usePushSync';
 import { registerSW } from './push';
+import { InstallBanner } from './components/InstallBanner';
 import { Ctx, type AppData, type Follow } from './context';
 import { compareLines } from './core/lines';
 import { madridNow, fmt } from './core/time';
@@ -23,11 +24,12 @@ const TABS = [
   { id: 'mitren', label: 'tab.mytrain', title: 'mytrain.title', sub: 'mytrain.sub', icon: <><rect x="5" y="3" width="14" height="14" rx="3" /><path d="M5 11h14M9 21l-2-4M15 21l2-4" /></> },
   { id: 'buscar', label: 'tab.search', title: 'search.title', sub: 'search.sub', icon: <><circle cx="11" cy="11" r="6" /><path d="m20 20-4.5-4.5" /></> },
   { id: 'estacion', label: 'tab.station', title: 'station.title', sub: 'station.sub', icon: <><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M7 9h6M7 13h10M12 17v3" /></> },
-  { id: 'alarmas', label: 'tab.alarms', title: 'alarms.title', sub: 'alarms.sub', icon: <><circle cx="12" cy="13" r="7" /><path d="M12 9v4l2 2M5 4 3 6M19 4l2 2" /></> },
+  { id: 'avisos', label: 'tab.alarms', title: 'alarms.title', sub: 'alarms.sub', icon: <path d="M6 9a6 6 0 0 1 12 0c0 6 2.5 8 2.5 8h-17S6 15 6 9M10 20.5a2.2 2.2 0 0 0 4 0" /> },
   { id: 'mas', label: 'tab.more', title: 'more.title', sub: null, icon: <path d="M4 7h16M4 12h16M4 17h16" /> },
 ] as const;
 type TabId = (typeof TABS)[number]['id'];
-const tabFromHash = (fallback: TabId = 'buscar'): TabId => (TABS.find((x) => x.id === location.hash.slice(1))?.id ?? fallback);
+const HASH_ALIAS: Record<string, string> = { alarmas: 'avisos' }; // enlaces antiguos
+const tabFromHash = (fallback: TabId = 'buscar'): TabId => { const h = location.hash.slice(1); return TABS.find((x) => x.id === (HASH_ALIAS[h] ?? h))?.id ?? fallback; };
 const FOLLOW_TTL_MS = 24 * 3600 * 1000;
 
 /** Tiempo real cada 30 s mientras la página está visible. */
@@ -125,6 +127,7 @@ export function App() {
       {data && tab !== 'mitren' && <Ctx.Provider value={data}><FollowRibbon /></Ctx.Provider>}</header>
       {state.s === 'ready' && state.offline && <div className="banner" role="status"><div className="in">{t('load.offline')}</div></div>}
 
+      <InstallBanner />
       <main className="wrap">
         <h2 ref={heading} tabIndex={-1}>{t(cur.title as Key)}</h2>
         {cur.sub && <p className="sub">{t(cur.sub as Key)}</p>}
@@ -135,7 +138,7 @@ export function App() {
             {tab === 'mitren' && <MyTrainView />}
             {tab === 'buscar' && <SearchView />}
             {tab === 'estacion' && <StationView />}
-            {tab === 'alarmas' && <AlarmsView />}
+            {tab === 'avisos' && <AlarmsView />}
             {tab === 'mas' && <MoreView />}
             {train && <TrainSheet {...train} onClose={() => setTrain(null)} />}
             {lineSheet && <LineSheet lineId={lineSheet.id} dir={lineSheet.dir} onDir={(dir) => setLineSheet({ ...lineSheet, dir })} onClose={() => setLineSheet(null)} />}
