@@ -17,8 +17,10 @@ const pass = process.env.KS_PASS;
 if (!pass || !existsSync(keystore)) throw new Error('Falta la clave de firma (ejecuta tools/android/keystore.sh)');
 const log = new ConsoleLog('trenavis');
 
-const m = await TwaManifest.fromWebManifest(`${ORIGIN}/manifest.webmanifest`);
-Object.assign(m, {
+const base = await TwaManifest.fromWebManifest(`${ORIGIN}/manifest.webmanifest`);
+// Los colores de TwaManifest son objetos: se configuran en formato JSON (texto) y se vuelve a construir
+const m = new TwaManifest({
+  ...base.toJson(),
   packageId: PACKAGE, host: new URL(ORIGIN).host, name: 'TrenAvís', launcherName: 'TrenAvís',
   startUrl: '/', appVersionCode: code, appVersionName: `1.0.${code}`,
   enableNotifications: true,             // notificaciones web delegadas en la app (canal de Android)
@@ -26,12 +28,12 @@ Object.assign(m, {
   signingKey: { path: keystore, alias: 'trenavis' },
   generatorApp: 'trenavis-ci',
   minSdkVersion: 24,                     // Android 7.0+ (lo exige androidbrowserhelper)
+  themeColor: '#1240e0',                 // barra de estado
+  backgroundColor: '#1240e0',            // pantalla de inicio (con el icono blanco), igual que la de la web
+  splashScreenFadeOutDuration: 300,
+  navigationColor: '#ffffff', navigationColorDark: '#0a0d18',             // barra inferior del sistema
+  navigationDividerColor: '#d5dbef', navigationDividerColorDark: '#262e4a',
 });
-m.themeColor = '#1240e0';                 // barra de estado
-m.backgroundColor = '#1240e0';            // pantalla de inicio (con el icono), igual que la de la web
-m.splashScreenFadeOutDuration = 300;
-m.navigationColor = '#ffffff'; m.navigationColorDark = '#0a0d18';             // barra inferior del sistema
-m.navigationDividerColor = '#d5dbef'; m.navigationDividerColorDark = '#262e4a';
 await new TwaGenerator().createTwaProject(dir, m, log);
 // Pantalla de inicio: icono blanco (el normal es azul y se perdería sobre el fondo cobalto)
 for (const d of readdirSync(join(dir, 'app/src/main/res')).filter((x) => x.startsWith('drawable-'))) {
