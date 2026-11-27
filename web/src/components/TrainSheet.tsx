@@ -5,6 +5,7 @@ import { t } from '../i18n';
 import { useApp } from '../context';
 import { Sheet } from './Sheet';
 import { LineChip } from './LineChip';
+import { PlatformEditor } from './PlatformEditor';
 
 interface Props { run: Run; date: string; from?: string; to?: string; onClose: () => void }
 
@@ -48,6 +49,7 @@ export function TrainSheet({ run, date, from, to, onClose }: Props) {
           ];
         })}
       </ol>
+      {(from ?? to) && <PlatformEditor run={run} station={(from ?? to)!} />}
     </Sheet>
   );
 }

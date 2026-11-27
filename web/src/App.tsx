@@ -38,6 +38,7 @@ export function App() {
   const [tab, setTab] = useState<TabId>(tabFromHash);
   const [train, setTrain] = useState<{ run: Run; date: string; from?: string; to?: string } | null>(null);
   const [favorites, setFavorites] = usePersisted<string[]>('favorites', []);
+  const [platforms, setPlatforms] = usePersisted<Record<string, string>>('platforms', {});
   const now = useNow();
   const heading = useRef<HTMLHeadingElement>(null);
   const firstRoute = useRef(true);
@@ -69,10 +70,12 @@ export function App() {
       lineIds: tt.files.map((f) => f.line).sort(compareLines),
       favorites,
       toggleFavorite: (id) => setFavorites((f) => (f.includes(id) ? f.filter((x) => x !== id) : [...f, id])),
+      platforms,
+      setPlatform: (key, value) => setPlatforms((p) => { const n = { ...p }; if (value) n[key] = value; else delete n[key]; return n; }),
       now,
       openTrain: (run, date, from, to) => setTrain({ run, date, from, to }),
     };
-  }, [state, favorites, setFavorites, now]);
+  }, [state, favorites, setFavorites, platforms, setPlatforms, now]);
 
   const cur = TABS.find((x) => x.id === tab)!;
   return (

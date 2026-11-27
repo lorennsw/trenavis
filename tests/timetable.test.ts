@@ -157,3 +157,25 @@ describe('hora escrita a mano', () => {
   });
   it.each(['', 'abc', '24:00', '8:60', '12345', '-1'])('rechaza "%s"', (s) => expect(parseTypedTime(s)).toBeNull());
 });
+
+import { platformKey, cleanPlatform } from '../web/src/core/platform';
+describe('tu vía', () => {
+  const runs = runsOn(tt, D);
+  const r1 = runs.find((r) => r.num === '10001')!; // A-B-C-D
+  const r3 = runs.find((r) => r.num === '10003')!; // otro tren, mismo sentido
+  const r2 = runs.find((r) => r.num === '10002')!; // D-C-B-A (sentido contrario)
+  it('trenes de la misma línea y sentido comparten la nota; el sentido contrario no', () => {
+    expect(platformKey(r1, 'B')).toBe(platformKey(r3, 'B'));
+    expect(platformKey(r1, 'B')).not.toBe(platformKey(r2, 'B'));
+  });
+  it('en la última parada usa la estación anterior', () => {
+    expect(platformKey(r1, 'D')).toBe('D|R1|<C');
+    expect(platformKey(r1, 'Z')).toBeNull();
+  });
+  it('limpia lo escrito', () => {
+    expect(cleanPlatform(' 7 ')).toBe('7');
+    expect(cleanPlatform('3-4')).toBe('3-4');
+    expect(cleanPlatform('   ')).toBeNull();
+    expect(cleanPlatform('1234567')).toBe('12345');
+  });
+});
