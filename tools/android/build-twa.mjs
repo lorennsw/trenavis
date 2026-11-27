@@ -25,6 +25,7 @@ Object.assign(m, {
   fallbackType: 'customtabs', orientation: 'portrait', display: 'standalone',
   signingKey: { path: keystore, alias: 'trenavis' },
   generatorApp: 'trenavis-ci',
+  minSdkVersion: 24,                     // Android 7.0+ (lo exige androidbrowserhelper)
 });
 m.themeColor = m.themeColor ?? '#1240e0';
 await new TwaGenerator().createTwaProject(dir, m, log);
