@@ -86,7 +86,7 @@ const es = {
   'line.seeMap': 'Ver en el mapa', 'map.title': 'Mapa en directo', 'map.all': 'Todas las líneas',
   'map.trains': '{n} trenes con posición GPS', 'map.loading': 'Cargando mapa…',
   'map.privacy': 'El mapa se descarga de OpenStreetMap solo al abrirlo.',
-  'alerts.station': 'Incidencias que afectan a esta estación', 'alerts.follow': 'Incidencia en tu línea',
+  'alerts.station': 'Incidencias que afectan a esta estación', 'alerts.show': 'Ver incidencias de la línea ({n})', 'alerts.hide': 'Ocultar incidencias', 'alerts.follow': 'Incidencia en tu línea',
   'install.title': 'Instala TrenAvís', 'install.why': 'Con su icono, a pantalla completa y con notificaciones.', 'install.go': 'Instalar', 'install.close': 'Cerrar',
   'install.button': 'Instalar TrenAvís', 'install.done': 'TrenAvís ya está instalada en este dispositivo.',
   'theme.title': 'Tema', 'theme.auto': 'Automático', 'theme.light': 'Claro', 'theme.dark': 'Oscuro',

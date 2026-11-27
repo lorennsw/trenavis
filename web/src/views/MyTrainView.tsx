@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useApp } from '../context';
 import { findFollowed, followPhase } from '../core/follow';
 import { alertsForLine, delayOf, livePosition, runStatus } from '../core/live';
@@ -11,6 +12,7 @@ import { load } from '../store';
 
 export function MyTrainView() {
   const { tt, follow, setFollow, rt, now, openTrain, openLine, platforms } = useApp();
+  const [showAlerts, setShowAlerts] = useState(false);
   if (!follow) return <p className="empty">{t('mytrain.empty')}</p>;
   const f = findFollowed(tt, follow, now.date);
   const name = (id: string) => tt.stations.get(id)?.name ?? id;
@@ -24,7 +26,8 @@ export function MyTrainView() {
   const ph = followPhase(run, a, b, now.min, delay);
   const pos = livePosition(run, rt, now.min, delay);
   const line = tt.lines.get(run.trip.l);
-  const alerts = line ? alertsForLine(line, rt.alerts) : [];
+  // Incidencias sin repetir (Renfe publica el mismo texto para varias rutas de la línea)
+  const alerts = (line ? alertsForLine(line, rt.alerts) : []).filter((a, i, l) => l.findIndex((b) => b.text.es === a.text.es) === i);
   const skipped = rt.trips.get(run.trip.id)?.skipped ?? new Set<string>();
   const via = platforms[platformKey(run, follow.from)!];
 
@@ -48,7 +51,6 @@ export function MyTrainView() {
       </section>
 
       {!load('notif', { follow: false, alarms: false }).follow && <p className="hint"><a href="#mas">{t('notif.hintFollow')}</a></p>}
-      {alerts.map((al) => <p key={al.id} className="alertbox" role="note"><b>{t('alerts.follow')}:</b> {al.text.es}</p>)}
 
       <ol className="stops" aria-label={t('train.stops')}>
         {run.stations.slice(a, b + 1).map((s, k) => {
@@ -67,6 +69,14 @@ export function MyTrainView() {
         })}
       </ol>
 
+      {alerts.length > 0 && (
+        <section className="alerts-fold">
+          <button className="btn wide alerts-toggle" aria-expanded={showAlerts} onClick={() => setShowAlerts(!showAlerts)}>
+            ⚠ {showAlerts ? t('alerts.hide') : t('alerts.show', { n: alerts.length })}
+          </button>
+          {showAlerts && alerts.map((al) => <p key={al.id} className="alertbox" role="note">{al.text.es}</p>)}
+        </section>
+      )}
       <div className="filters actions">
         <button className="btn" onClick={() => openTrain(run, now.date, follow.from, follow.to)}>{t('follow.full')}</button>
         <button className="btn" onClick={() => openLine(run.trip.l, 0)}>{t('follow.line')}</button>
