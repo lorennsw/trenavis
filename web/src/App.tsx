@@ -121,6 +121,14 @@ export function App() {
   }, [state, favorites, setFavorites, platforms, setPlatforms, now, rt, followActive, setFollowRaw]);
 
   usePushSync(data);
+  useEffect(() => {
+    if (state.s === 'loading') return;
+    const el = document.getElementById('splash');
+    if (!el) return;
+    el.classList.add('hide');
+    const id = setTimeout(() => el.remove(), 350);
+    return () => clearTimeout(id);
+  }, [state.s]);
   useEffect(() => { registerSW(); }, []);
   const cur = TABS.find((x) => x.id === tab)!;
   return (

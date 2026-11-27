@@ -4,7 +4,7 @@
  * Uso: node tools/android/build-twa.mjs <versionCode>
  */
 import { TwaManifest, TwaGenerator, ConsoleLog, Config, JdkHelper, AndroidSdkTools, GradleWrapper, JarSigner } from '@bubblewrap/core';
-import { mkdirSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync, copyFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
 const ORIGIN = 'https://trenavis.lorennsw.workers.dev';
@@ -27,8 +27,17 @@ Object.assign(m, {
   generatorApp: 'trenavis-ci',
   minSdkVersion: 24,                     // Android 7.0+ (lo exige androidbrowserhelper)
 });
-m.themeColor = m.themeColor ?? '#1240e0';
+m.themeColor = '#1240e0';                 // barra de estado
+m.backgroundColor = '#1240e0';            // pantalla de inicio (con el icono), igual que la de la web
+m.splashScreenFadeOutDuration = 300;
+m.navigationColor = '#ffffff'; m.navigationColorDark = '#0a0d18';             // barra inferior del sistema
+m.navigationDividerColor = '#d5dbef'; m.navigationDividerColorDark = '#262e4a';
 await new TwaGenerator().createTwaProject(dir, m, log);
+// Pantalla de inicio: icono blanco (el normal es azul y se perdería sobre el fondo cobalto)
+for (const d of readdirSync(join(dir, 'app/src/main/res')).filter((x) => x.startsWith('drawable-'))) {
+  const f = join(dir, 'app/src/main/res', d, 'splash.png');
+  if (existsSync(f)) copyFileSync(resolve('tools/android/splash.png'), f);
+}
 
 const config = new Config(process.env.JAVA_HOME, process.env.ANDROID_HOME ?? process.env.ANDROID_SDK_ROOT);
 const jdk = new JdkHelper(process, config);
