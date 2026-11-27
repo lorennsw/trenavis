@@ -7,7 +7,7 @@ import { decide, type FollowRow, type PlanRow, type TripRT } from './notify';
 import { sendPush, type VapidKeys } from './webpush';
 
 export interface PushEnv { DB?: D1Database; DATA: KVNamespace; ALLOW_HTTP_PUSH?: string }
-const SUBJECT = 'https://lorennsw.github.io/trenavis/';
+const SUBJECT = 'https://trenavis.lorennsw.workers.dev/';
 
 const SCHEMA = [
   `CREATE TABLE IF NOT EXISTS subs (id TEXT PRIMARY KEY, endpoint TEXT NOT NULL, p256dh TEXT NOT NULL, auth TEXT NOT NULL, want_follow INTEGER NOT NULL DEFAULT 0, want_alarms INTEGER NOT NULL DEFAULT 0, updated INTEGER NOT NULL)`,

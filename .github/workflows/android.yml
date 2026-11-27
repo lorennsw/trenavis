@@ -28,9 +28,12 @@ jobs:
       - name: Generar, compilar y firmar
         run: node tools/android/build-twa.mjs ${{ github.run_number }}
       - uses: actions/upload-artifact@v4
-        with: { name: trenavis-android-${{ github.run_number }}, path: android-out/ }
+        with:
+          name: trenavis-android-${{ github.run_number }}
+          path: android-out/
       - name: Publicar en Releases
-        env: { GH_TOKEN: '${{ github.token }}' }
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           gh release create "android-1.0.${{ github.run_number }}" android-out/*.apk android-out/*.aab \
             --title "TrenAvís para Android 1.0.${{ github.run_number }}" --target "${{ github.sha }}" \
