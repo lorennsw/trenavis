@@ -5,7 +5,7 @@ import { t } from '../i18n';
 import { Sheet } from './Sheet';
 import { useInstall } from '../install';
 
-/** Más → Avisos: activar/desactivar cada tipo de aviso, permiso del sistema y guía de instalación. */
+/** Más → Notificaciones: activar/desactivar cada tipo, permiso del sistema y guía de instalación. */
 export function NotificationsSettings() {
   const [prefs, setPrefs] = usePersisted<NotifPrefs>('notif', NO_PREFS);
   const [perm, setPerm] = useState(permission());
@@ -70,14 +70,14 @@ export function NotificationsSettings() {
             <li>Toca el botón <b>Compartir</b> (el cuadrado con la flecha hacia arriba).</li>
             <li>Elige <b>«Añadir a pantalla de inicio»</b> y toca <b>Añadir</b>.</li>
             <li>Abre TrenAvís <b>desde el icono</b> de la pantalla de inicio.</li>
-            <li>Ve a <b>Más → Avisos</b> y activa los que quieras. Acepta el permiso de notificaciones.</li>
+            <li>Ve a <b>Más → Notificaciones</b> y activa las que quieras. Acepta el permiso.</li>
           </ol>
           <p className="hint">{t('notif.iosNote')}</p>
           <h4>Android</h4>
           <ol className="guide">
             <li>Abre la web en <b>Chrome</b>.</li>
             <li>Toca el menú <b>⋮</b> y elige <b>«Instalar aplicación»</b> o <b>«Añadir a pantalla de inicio»</b>.</li>
-            <li>Activa los avisos en <b>Más → Avisos</b> (en Android también funcionan sin instalarla).</li>
+            <li>Activa las notificaciones en <b>Más → Notificaciones</b> (en Android también funcionan sin instalarla).</li>
           </ol>
         </Sheet>
       )}
