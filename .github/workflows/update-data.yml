@@ -21,6 +21,12 @@ jobs:
         run: bash tools/ensure-d1.sh
       - name: Desplegar Worker
         run: npx wrangler deploy --config worker/wrangler.toml
+      - name: Clave de Firebase para las notificaciones de la app
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: |
+          if [ -n "$FIREBASE_SERVICE_ACCOUNT" ]; then printf '%s' "$FIREBASE_SERVICE_ACCOUNT" | npx wrangler secret put FIREBASE_SERVICE_ACCOUNT --config worker/wrangler.toml
+          else echo "Sin secreto FIREBASE_SERVICE_ACCOUNT: la app Android no recibirá notificaciones todavía."; fi
       - run: npm run data:build
       - name: Municipios de OpenStreetMap (guardados por el workflow mensual)
         run: npx tsx tools/apply-areas.ts

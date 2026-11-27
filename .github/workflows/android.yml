@@ -1,34 +1,51 @@
 name: App Android (APK y AAB)
+# App Android independiente (Capacitor): la web va dentro de la app; notificaciones con Firebase.
 on:
   workflow_dispatch:
   push:
     branches: [main, ccr-678091cb-mlaxyu]
-    paths: ['tools/android/**', '.github/workflows/android.yml']
+    paths: ['android/**', 'capacitor.config.ts', 'web/**', 'tools/android/**', '.github/workflows/android.yml']
 permissions:
   contents: write   # para publicar el APK/AAB en Releases
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
     env:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      GOOGLE_SERVICES_JSON: ${{ secrets.GOOGLE_SERVICES_JSON }}
+      VERSION_CODE: ${{ github.run_number }}0
+      VERSION_NAME: 2.0.${{ github.run_number }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5
         with: { node-version: 22 }
       - uses: actions/setup-java@v5
-        with: { distribution: temurin, java-version: '17' }
+        with: { distribution: temurin, java-version: '21' }
       - run: npm ci
-      - run: npm i --no-save @bubblewrap/core@1.28.0
-      - name: Android SDK (build-tools que usa Bubblewrap)
+      - run: npm test
+      - name: Compilar la web para la app
+        run: npm run build
+        env: { BASE_PATH: / }
+      - run: npx cap sync android
+      - name: Configuración de Firebase (notificaciones)
         run: |
-          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "build-tools;36.1.0" "platforms;android-36" > /dev/null
-          # Bubblewrap busca las herramientas en <sdk>/bin (estructura antigua)
-          [ -e "$ANDROID_HOME/bin" ] || sudo ln -s "$ANDROID_HOME/cmdline-tools/latest/bin" "$ANDROID_HOME/bin"
-      - name: Clave de firma
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then printf '%s' "$GOOGLE_SERVICES_JSON" > android/app/google-services.json; echo "google-services.json listo"
+          else echo "::warning::Falta el secreto GOOGLE_SERVICES_JSON: la app se compila sin notificaciones"; fi
+      - name: Licencias del SDK de Android
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+      - name: Clave de firma (la misma que la versión anterior)
         run: bash tools/android/keystore.sh
-      - name: Generar, compilar y firmar
-        run: node tools/android/build-twa.mjs ${{ github.run_number }}
+      - name: Compilar y firmar
+        working-directory: android
+        run: |
+          chmod +x gradlew
+          KS_FILE="$GITHUB_WORKSPACE/android.keystore" ./gradlew --no-daemon assembleRelease bundleRelease
+          mkdir -p ../android-out
+          cp app/build/outputs/apk/release/app-release.apk "../android-out/trenavis-$VERSION_NAME.apk"
+          cp app/build/outputs/bundle/release/app-release.aab "../android-out/trenavis-$VERSION_NAME.aab"
       - uses: actions/upload-artifact@v4
         with:
           name: trenavis-android-${{ github.run_number }}
@@ -37,6 +54,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "android-1.0.${{ github.run_number }}" android-out/*.apk android-out/*.aab \
-            --title "TrenAvís para Android 1.0.${{ github.run_number }}" --target "${{ github.sha }}" \
-            --notes "APK para instalar directamente en Android (permite «instalar apps de origen desconocido»). AAB para subir a Google Play."
+          gh release create "android-$VERSION_NAME" android-out/*.apk android-out/*.aab \
+            --title "TrenAvís para Android $VERSION_NAME" --target "${{ github.sha }}" \
+            --notes "App independiente (no necesita Chrome). APK para instalar directamente en Android 7 o superior; AAB para Google Play."

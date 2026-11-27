@@ -94,6 +94,8 @@ const es = {
   'legal.title': 'Legal y privacidad', 'legal.static': 'También disponible como página:', 'legal.openPage': 'abrir',
   'data.title': 'Tus datos', 'data.export': 'Exportar mis datos', 'data.delete': 'Borrar todos mis datos',
   'data.exportInfo': 'Esto es todo lo que TrenAvís guarda en este dispositivo. Puedes copiarlo o descargarlo.',
+  'data.import': 'Importar mis datos', 'data.importInfo': 'Pega aquí los datos exportados desde TrenAvís (por ejemplo, desde la versión anterior de la app o desde otro móvil). Las notificaciones hay que volver a activarlas.',
+  'data.importLabel': 'Datos exportados (JSON)', 'data.importGo': 'Importar', 'data.importBad': 'Esto no parece una exportación de TrenAvís.', 'data.importOk': 'Importados {n} datos. Recargando…',
   'data.copy': 'Copiar', 'data.copied': 'Copiado', 'data.download': 'Descargar (.json)',
   'data.deleteTitle': '¿Borrar todos tus datos?', 'data.deleteYes': 'Sí, borrar todo', 'data.deleting': 'Borrando…',
   'data.deleteInfo': 'Se borrarán tus avisos de salida, el tren seguido, favoritas, notas de vía y preferencias de este dispositivo, los horarios guardados y, si tenías notificaciones, también todo lo guardado en el servidor. No se puede deshacer.',

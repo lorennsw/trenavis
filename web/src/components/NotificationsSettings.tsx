@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { usePersisted } from '../store';
-import { isIOS, isStandalone, NO_PREFS, permission, pushSupported, serverReady, subscribe, testNotification, unsubscribeAll, type NotifPrefs } from '../push';
+import { isIOS, isStandalone, NO_PREFS, permission, permissionAsync, pushSupported, serverReady, subscribe, testNotification, unsubscribeAll, type NotifPrefs } from '../push';
+import { isNative } from '../native';
 import { t } from '../i18n';
 import { Sheet } from './Sheet';
 import { useInstall } from '../install';
@@ -15,7 +16,7 @@ export function NotificationsSettings() {
   const [syncOk, setSyncOk] = useState<boolean | null>(null);
   const [server, setServer] = useState<boolean | null>(null);
   const inst = useInstall();
-  useEffect(() => { serverReady().then(setServer); }, []);
+  useEffect(() => { serverReady().then(setServer); permissionAsync().then(setPerm); }, []);
   useEffect(() => { const on = (e: Event) => setSyncOk((e as CustomEvent).detail); addEventListener('trenavis-sync', on); return () => removeEventListener('trenavis-sync', on); }, []);
 
   const iosNeedsInstall = isIOS() && !isStandalone();
@@ -26,10 +27,10 @@ export function NotificationsSettings() {
     const next = { ...prefs, [k]: !prefs[k] };
     if (next[k]) {
       setBusy(true);
-      try { await subscribe(); setPerm(permission()); setPrefs(next); }
+      try { await subscribe(); setPerm(await permissionAsync()); setPrefs(next); }
       catch (e) {
         const code = (e as Error).message;
-        setPerm(permission());
+        setPerm(await permissionAsync());
         setMsg(code === 'denied' ? t('notif.denied') : code === 'dismissed' ? t('notif.dismissed') : t('notif.error'));
       } finally { setBusy(false); }
     } else {
@@ -55,7 +56,7 @@ export function NotificationsSettings() {
           <Row label={t('notif.alarms')} desc={t('notif.alarmsDesc')} on={prefs.alarms} disabled={busy} onToggle={() => toggle('alarms')} />
           <div className="set">
             <div>{t('notif.system')}<small>{perm === 'granted' ? t('notif.perm.granted') : perm === 'denied' ? t('notif.perm.denied') : t('notif.perm.default')}</small></div>
-            {perm === 'granted' && <button className="btn sm" onClick={() => testNotification(t('notif.testTitle'), t('notif.testBody'))}>{t('notif.test')}</button>}
+            {perm === 'granted' && !isNative() && <button className="btn sm" onClick={() => testNotification(t('notif.testTitle'), t('notif.testBody'))}>{t('notif.test')}</button>}
           </div>
           {(prefs.follow || prefs.alarms) && syncOk === false && <p className="hint bad" role="alert">{t('notif.syncFail')}</p>}
           <p className="hint">{t('notif.privacy')}</p>

@@ -4,18 +4,20 @@
  */
 import { API } from './api';
 import { load } from './store';
+import { isNative, nativePermission, nativeSubscribe, nativeUnsubscribe, savedToken } from './native';
 
 export interface NotifPrefs { follow: boolean; alarms: boolean }
 export const NO_PREFS: NotifPrefs = { follow: false, alarms: false };
 
-export const pushSupported = () => typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
-export const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-export const isStandalone = () => matchMedia('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
-export const permission = (): NotificationPermission | 'unsupported' => (pushSupported() ? Notification.permission : 'unsupported');
+export const pushSupported = () => isNative() || (typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+export const isIOS = () => !isNative() && ( /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+export const isStandalone = () => isNative() || matchMedia('(display-mode: standalone)').matches || (navigator as unknown as { standalone?: boolean }).standalone === true;
+export const permission = (): NotificationPermission | 'unsupported' => (isNative() ? 'default' : pushSupported() ? Notification.permission : 'unsupported');
+export const permissionAsync = async (): Promise<NotificationPermission | 'unsupported'> => (isNative() ? nativePermission() : permission());
 
 let regPromise: Promise<ServiceWorkerRegistration | null> | null = null;
 export function registerSW(): Promise<ServiceWorkerRegistration | null> {
-  if (!('serviceWorker' in navigator)) return Promise.resolve(null);
+  if (isNative() || !('serviceWorker' in navigator)) return Promise.resolve(null); // en la app no hace falta
   return regPromise ??= navigator.serviceWorker.register(`${import.meta.env.BASE_URL}sw.js`, { scope: import.meta.env.BASE_URL })
     .catch(() => null);
 }
@@ -28,7 +30,8 @@ export async function currentSubscription(): Promise<PushSubscription | null> {
 const b64uToBytes = (s: string) => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((s.length + 3) % 4)), (c) => c.charCodeAt(0));
 
 /** Pide permiso (debe llamarse al tocar un botón) y crea la suscripción. */
-export async function subscribe(): Promise<PushSubscription> {
+export async function subscribe(): Promise<PushSubscription | string> {
+  if (isNative()) return nativeSubscribe();
   if (!pushSupported()) throw new Error('unsupported');
   const perm = await Notification.requestPermission();
   if (perm !== 'granted') throw new Error(perm === 'denied' ? 'denied' : 'dismissed');
@@ -45,6 +48,7 @@ export async function subscribe(): Promise<PushSubscription> {
 
 /** Borra la suscripción en el navegador y todos los datos de avisos en el servidor. */
 export async function unsubscribeAll(): Promise<void> {
+  if (isNative()) return nativeUnsubscribe(API);
   const sub = await currentSubscription();
   if (!sub) return;
   try { await fetch(`${API}/push/unsubscribe`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) }); } catch { /* se reintentará */ }
@@ -60,14 +64,21 @@ export interface SyncPayload {
 /** Envía al servidor el estado actual. Devuelve true si ha ido bien. */
 export async function syncPush(payload: SyncPayload): Promise<boolean> {
   const prefs = load<NotifPrefs>('notif', NO_PREFS);
-  const sub = await currentSubscription();
-  if (!sub) return false;
   if (!prefs.follow && !prefs.alarms) { await unsubscribeAll(); return true; }
-  const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+  let who: Record<string, unknown>;
+  if (isNative()) {
+    const token = savedToken();
+    if (!token) return false;
+    who = { fcmToken: token };
+  } else {
+    const sub = await currentSubscription();
+    if (!sub) return false;
+    who = { subscription: sub.toJSON() };
+  }
   try {
     const r = await fetch(`${API}/push/sync`, {
       method: 'POST', headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ subscription: json, wantFollow: prefs.follow, wantAlarms: prefs.alarms, ...payload }),
+      body: JSON.stringify({ ...who, wantFollow: prefs.follow, wantAlarms: prefs.alarms, ...payload }),
     });
     return r.ok;
   } catch { return false; }

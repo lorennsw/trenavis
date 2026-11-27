@@ -2,7 +2,7 @@ import { RT_BASE, normalizeAlerts, normalizeTripUpdates, normalizeVehicles } fro
 import { adminAlarms, adminPlans, runCron, sync, unsubscribe, validPlan, validSync, vapid } from './push.ts';
 import type { TripRT } from './notify.ts';
 
-export interface Env { DATA: KVNamespace; DB?: D1Database; ALLOWED_ORIGIN: string; ALLOW_HTTP_PUSH?: string /* solo pruebas locales */ }
+export interface Env { DATA: KVNamespace; DB?: D1Database; ALLOWED_ORIGIN: string; ALLOW_HTTP_PUSH?: string /* solo pruebas locales */; FIREBASE_SERVICE_ACCOUNT?: string }
 
 const FEEDS = {
   'trip-updates': { file: 'trip_updates', normalize: normalizeTripUpdates },
@@ -88,8 +88,9 @@ export default {
       }
       if (parts[1] === 'unsubscribe' && req.method === 'POST') {
         const b = await readJson(req);
-        if (typeof b?.endpoint !== 'string') return json({ error: 'datos no válidos' }, env, 'no-store', 400);
-        await unsubscribe(env, b.endpoint);
+        const ep = typeof b?.fcmToken === 'string' ? `fcm:${b.fcmToken}` : b?.endpoint;
+        if (typeof ep !== 'string') return json({ error: 'datos no válidos' }, env, 'no-store', 400);
+        await unsubscribe(env, ep);
         return json({ ok: true }, env, 'no-store');
       }
       return json({ error: 'no encontrado' }, env, 'no-store', 404);

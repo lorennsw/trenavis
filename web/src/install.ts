@@ -5,6 +5,7 @@
  */
 import { useEffect, useState } from 'react';
 import { isIOS, isStandalone } from './push';
+import { isNative } from './native';
 
 interface BIPEvent extends Event { prompt: () => Promise<void>; userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }> }
 let deferred: BIPEvent | null = null;
@@ -22,7 +23,7 @@ export type InstallState = 'installed' | 'available' | 'ios' | 'manual';
 export function useInstall(): { state: InstallState; install: () => Promise<boolean> } {
   const [, force] = useState(0);
   useEffect(() => { const f = () => force((n) => n + 1); listeners.add(f); return () => { listeners.delete(f); }; }, []);
-  const state: InstallState = installedNow || isStandalone() ? 'installed' : deferred ? 'available' : isIOS() ? 'ios' : 'manual';
+  const state: InstallState = installedNow || isNative() || isStandalone() ? 'installed' : deferred ? 'available' : isIOS() ? 'ios' : 'manual';
   const install = async () => {
     if (!deferred) return false;
     await deferred.prompt();

@@ -6,6 +6,7 @@ import { FollowRibbon } from './components/FollowRibbon';
 import { MyTrainView } from './views/MyTrainView';
 import { usePushSync } from './usePushSync';
 import { registerSW } from './push';
+import { hideSplash, initNative } from './native';
 import { InstallBanner } from './components/InstallBanner';
 import { LegalSheet } from './components/LegalSheet';
 import { StorageNotice } from './components/StorageNotice';
@@ -125,11 +126,12 @@ export function App() {
     if (state.s === 'loading') return;
     const el = document.getElementById('splash');
     if (!el) return;
+    hideSplash();
     el.classList.add('hide');
     const id = setTimeout(() => el.remove(), 350);
     return () => clearTimeout(id);
   }, [state.s]);
-  useEffect(() => { registerSW(); }, []);
+  useEffect(() => { registerSW(); initNative(); }, []);
   const cur = TABS.find((x) => x.id === tab)!;
   return (
     <>

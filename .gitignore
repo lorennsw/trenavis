@@ -3,3 +3,11 @@ node_modules/
 data/raw/
 data/out/
 dist/
+
+# Secretos que nunca deben subirse
+android.keystore
+android/app/google-services.json
+*.jks
+# Salidas de compilación Android
+android-out/
+android-build/

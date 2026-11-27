@@ -319,3 +319,4 @@ nav.tabs a,.btn,.fl,.seg button,.prow,.lineh,.picker,.mi,.tchip,.plist button,.s
 nav.tabs a:active{background:var(--zone)}
 /* El foco con teclado se sigue viendo; el de toque no */
 :focus:not(:focus-visible){outline:none}
+textarea.imp{width:100%;border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--bg);color:var(--ink);font:.8125rem ui-monospace,monospace}

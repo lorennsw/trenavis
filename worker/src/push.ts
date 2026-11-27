@@ -5,8 +5,9 @@
  */
 import { decide, type FollowRow, type PlanRow, type TripRT } from './notify';
 import { sendPush, type VapidKeys } from './webpush';
+import { sendFcm, type ServiceAccount } from './fcm';
 
-export interface PushEnv { DB?: D1Database; DATA: KVNamespace; ALLOW_HTTP_PUSH?: string }
+export interface PushEnv { DB?: D1Database; DATA: KVNamespace; ALLOW_HTTP_PUSH?: string; FIREBASE_SERVICE_ACCOUNT?: string }
 const SUBJECT = 'https://trenavis.lorennsw.workers.dev/';
 
 const SCHEMA = [
@@ -49,9 +50,12 @@ export function validPlan(p: any): PlanIn | null {
   return Object.values(v).every((x) => x !== null) ? (v as PlanIn) : null;
 }
 export function validSync(b: any, allowHttp = false): SyncBody | null {
-  const ep = str(b?.subscription?.endpoint, 1000), p256dh = str(b?.subscription?.keys?.p256dh, 200), auth = str(b?.subscription?.keys?.auth, 100);
+  // App Android: token de Firebase en lugar de suscripción web
+  const fcm = str(b?.fcmToken, 4096);
+  if (fcm && /^[\w:.-]+$/.test(fcm)) b = { ...b, subscription: { endpoint: `fcm:${fcm}`, keys: { p256dh: '-', auth: '-' } } };
+  const ep = str(b?.subscription?.endpoint, 4100), p256dh = str(b?.subscription?.keys?.p256dh, 200), auth = str(b?.subscription?.keys?.auth, 100);
   if (!ep || !p256dh || !auth) return null;
-  if (!/^https:\/\//.test(ep) && !(allowHttp && /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(ep))) return null; // http solo en pruebas locales
+  if (!/^https:\/\//.test(ep) && !ep.startsWith('fcm:') && !(allowHttp && /^http:\/\/(127\.0\.0\.1|localhost)[:/]/.test(ep))) return null; // http solo en pruebas locales
   const f = b.follow;
   const follow = f && str(f.tripId, 40) && int(f.depAt) !== null && int(f.arrAt) !== null && str(f.label, 160)
     ? { tripId: f.tripId, depAt: f.depAt, arrAt: f.arrAt, label: f.label, delay: Math.max(0, int(f.delay) ?? 0), canceled: !!f.canceled } : null;
@@ -147,12 +151,15 @@ export async function runCron(env: PushEnv, getTrips: () => Promise<Map<string, 
   const subs = new Map([...plans, ...follows].map((x) => [x.sub_id, { endpoint: x.endpoint, p256dh: x.p256dh, auth: x.auth }]));
   const gone = new Set<string>();   // suscripción caducada (404/410): se borra todo
   const retry = new Set<string>();  // fallo temporal (red o 5xx/429): no se marca como enviado y se reintenta
-  if (!keys) for (const s of d.sends) retry.add(s.sub_id);
-  else for (const s of d.sends) {
+  const sa = env.FIREBASE_SERVICE_ACCOUNT ? JSON.parse(env.FIREBASE_SERVICE_ACCOUNT) as ServiceAccount : null;
+  for (const s of d.sends) {
     const sub = subs.get(s.sub_id);
     if (!sub || gone.has(s.sub_id)) continue;
+    if (!sub.endpoint.startsWith('fcm:') && !keys) { retry.add(s.sub_id); continue; }
     try {
-      const status = await sendPush(sub, s.msg, keys, SUBJECT, env.ALLOW_HTTP_PUSH === '1');
+      const status = sub.endpoint.startsWith('fcm:')
+        ? (sa ? await sendFcm(sa, sub.endpoint.slice(4), s.msg) : 503)
+        : await sendPush(sub, s.msg, keys!, SUBJECT, env.ALLOW_HTTP_PUSH === '1');
       if (status === 404 || status === 410) gone.add(s.sub_id);
       else if (status >= 500 || status === 429) retry.add(s.sub_id);
     } catch { retry.add(s.sub_id); }
