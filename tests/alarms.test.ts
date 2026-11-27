@@ -62,3 +62,22 @@ describe('próximo viaje', () => {
   it('sin días no hay alarma', () => { expect(nextPlan(tt, { ...base, days: [] }, EMPTY_RT, { date: THU, min: 0 })).toBeNull(); });
   it('día de la semana', () => { expect([weekday(THU), weekday(SAT), weekday(MON)]).toEqual([3, 5, 0]); });
 });
+
+import { madridToEpoch } from '../web/src/core/time';
+import { alarmPlans } from '../web/src/core/pushplans';
+describe('avisos para el servidor', () => {
+  it('hora de Madrid a UNIX, también con cambio de hora', () => {
+    expect(madridToEpoch('20261127', 8 * 60)).toBe(Date.UTC(2026, 10, 27, 7, 0) / 1000);   // invierno UTC+1
+    expect(madridToEpoch('20260701', 8 * 60)).toBe(Date.UTC(2026, 6, 1, 6, 0) / 1000);     // verano UTC+2
+    expect(madridToEpoch('20261127', 24 * 60 + 30)).toBe(Date.UTC(2026, 10, 27, 23, 30) / 1000); // 24:30 = 00:30 del día siguiente
+    expect(madridToEpoch('20261025', 12 * 60)).toBe(Date.UTC(2026, 9, 25, 11, 0) / 1000);  // día del cambio de octubre
+  });
+  it('planes de hoy y mañana para una alarma activa', () => {
+    const ps = alarmPlans(tt, base, { date: THU, min: hm('07:00') });
+    expect(ps.map((p) => p.date)).toEqual([THU, FRI]);
+    expect(ps[0]).toMatchObject({ alarmId: '1', lead: 5, tripId: '5129J10005R1', notifyAt: madridToEpoch(THU, hm('08:15')), depAt: madridToEpoch(THU, hm('08:30')) });
+    expect(ps[0].label).toBe('R1 de las 08:30 · A → B');
+    expect(alarmPlans(tt, { ...base, on: false }, { date: THU, min: 0 })).toEqual([]);
+    expect(alarmPlans(tt, base, { date: THU, min: hm('09:00') }).map((p) => p.date)).toEqual([FRI]); // hoy ya pasó
+  });
+});

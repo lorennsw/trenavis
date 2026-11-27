@@ -51,3 +51,16 @@ export function parseTypedTime(raw: string): number | null {
   if (h > 23 || m > 59) return null;
   return h * 60 + m;
 }
+
+/** Fecha (YYYYMMDD) + minutos en hora de Madrid -> segundos UNIX. Tiene en cuenta el cambio de hora. */
+export function madridToEpoch(ymd: string, min: number): number {
+  const target = Date.UTC(+ymd.slice(0, 4), +ymd.slice(4, 6) - 1, +ymd.slice(6, 8)) / 60000 + min; // "minutos UTC" que queremos ver en Madrid
+  let guess = target;
+  for (let i = 0; i < 3; i++) {
+    const m = madridNow(new Date(guess * 60000));
+    const seen = Date.UTC(+m.date.slice(0, 4), +m.date.slice(4, 6) - 1, +m.date.slice(6, 8)) / 60000 + m.min;
+    if (seen === target) break;
+    guess += target - seen;
+  }
+  return guess * 60;
+}

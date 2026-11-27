@@ -8,6 +8,17 @@ account_id = "26daaf7d50d86f84e8b2d985db7012a0"
 binding = "DATA"
 id = "c27f8eab03c845a0a0b1036c21aa1b72"
 
+# >>> D1 – base de datos de los avisos (suscripciones push y datos mínimos). El id lo pone tools/ensure-d1.sh al desplegar.
+[[d1_databases]]
+binding = "DB"
+database_name = "trenavis-db"
+database_id = "D1_DATABASE_ID"
+# <<< D1
+
+# Revisión de avisos cada minuto
+[triggers]
+crons = ["* * * * *"]
+
 [vars]
 # Origen permitido para CORS (tu GitHub Pages). "*" solo para desarrollo.
 ALLOWED_ORIGIN = "*"

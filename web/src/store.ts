@@ -11,6 +11,7 @@ export function load<T>(key: string, fallback: T): T {
 }
 export function save(key: string, value: unknown) {
   try { localStorage.setItem(PREFIX + key, JSON.stringify(value)); } catch { /* sin almacenamiento: no pasa nada */ }
+  try { dispatchEvent(new CustomEvent('trenavis-store', { detail: key })); } catch { /* entorno sin window */ }
 }
 
 export function usePersisted<T>(key: string, fallback: T): [T, (v: T | ((p: T) => T)) => void] {
