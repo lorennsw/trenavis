@@ -4,6 +4,8 @@
 import { Capacitor } from '@capacitor/core';
 
 export const isNative = () => Capacitor.isNativePlatform();
+/** ¿La app se compiló con Firebase? (si no, llamar a Firebase cerraría la app) */
+export const fcmEnabled = () => import.meta.env.VITE_FCM === '1';
 
 let tokenWaiters: ((t: string | null) => void)[] = [];
 const TOKEN_KEY = 'trenavis:fcmToken';
@@ -35,9 +37,11 @@ export async function initNative() {
     const url = (a.notification.data as { url?: string } | undefined)?.url;
     if (url?.startsWith('#')) location.hash = url.slice(1);
   });
-  // Si ya tenía permiso, renovar el token (puede cambiar)
+  // Si ya tenía las notificaciones activadas, renovar el token (puede cambiar). Solo con Firebase configurado.
+  let wants = false;
+  try { const n = JSON.parse(localStorage.getItem('trenavis:notif') ?? 'null'); wants = !!(n?.follow || n?.alarms); } catch { /* */ }
   const perm = await PushNotifications.checkPermissions();
-  if (perm.receive === 'granted') PushNotifications.register().catch(() => {});
+  if (fcmEnabled() && wants && perm.receive === 'granted') PushNotifications.register().catch(() => {});
 }
 
 export async function hideSplash() {
@@ -54,6 +58,7 @@ export async function nativePermission(): Promise<NotificationPermission> {
 
 /** Pide permiso y devuelve el token de Firebase. */
 export async function nativeSubscribe(): Promise<string> {
+  if (!fcmEnabled()) throw new Error('server');
   const { PushNotifications } = await import('@capacitor/push-notifications');
   const p = await PushNotifications.requestPermissions();
   if (p.receive !== 'granted') throw new Error(p.receive === 'denied' ? 'denied' : 'dismissed');

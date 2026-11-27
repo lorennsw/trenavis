@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { usePersisted } from '../store';
 import { isIOS, isStandalone, NO_PREFS, permission, permissionAsync, pushSupported, serverReady, subscribe, testNotification, unsubscribeAll, type NotifPrefs } from '../push';
-import { isNative } from '../native';
+import { fcmEnabled, isNative } from '../native';
 import { t } from '../i18n';
 import { Sheet } from './Sheet';
 import { useInstall } from '../install';
@@ -16,7 +16,7 @@ export function NotificationsSettings() {
   const [syncOk, setSyncOk] = useState<boolean | null>(null);
   const [server, setServer] = useState<boolean | null>(null);
   const inst = useInstall();
-  useEffect(() => { serverReady().then(setServer); permissionAsync().then(setPerm); }, []);
+  useEffect(() => { if (isNative() && !fcmEnabled()) { setServer(false); return; } serverReady().then(setServer); permissionAsync().then(setPerm); }, []);
   useEffect(() => { const on = (e: Event) => setSyncOk((e as CustomEvent).detail); addEventListener('trenavis-sync', on); return () => removeEventListener('trenavis-sync', on); }, []);
 
   const iosNeedsInstall = isIOS() && !isStandalone();

@@ -27,8 +27,12 @@ jobs:
       - run: npm ci
       - run: npm test
       - name: Compilar la web para la app
-        run: npm run build
-        env: { BASE_PATH: / }
+        run: |
+          # Firebase solo se activa en la app si está su configuración (si no, la app funcionaría sin notificaciones)
+          if [ -n "$GOOGLE_SERVICES_JSON" ]; then export VITE_FCM=1; fi
+          npm run build
+        env:
+          BASE_PATH: /
       - run: npx cap sync android
       - name: Configuración de Firebase (notificaciones)
         run: |
