@@ -2,9 +2,12 @@
 # Clave de firma de la app Android. Se crea una sola vez y se guarda en el KV de Cloudflare (privado de tu cuenta):
 # sin ella no se pueden publicar actualizaciones con la misma firma. También guarda su huella SHA-256 para assetlinks.
 set -euo pipefail
-CFG=worker/wrangler.toml
-kv_get() { npx wrangler kv key get "$1" --binding DATA --config "$CFG" 2>/dev/null | grep -v -i "not found" || true; }
-kv_put() { npx wrangler kv key put "$1" "$2" --binding DATA --config "$CFG" >/dev/null 2>&1; }
+ACCOUNT=26daaf7d50d86f84e8b2d985db7012a0
+NS=c27f8eab03c845a0a0b1036c21aa1b72
+KV="https://api.cloudflare.com/client/v4/accounts/$ACCOUNT/storage/kv/namespaces/$NS/values"
+# API de Cloudflare directamente: devuelve solo el valor (o 404 si no existe)
+kv_get() { curl -sf -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" "$KV/$1" || true; }
+kv_put() { curl -sf -X PUT -H "Authorization: Bearer $CLOUDFLARE_API_TOKEN" --data-binary "$2" "$KV/$1" >/dev/null; }
 
 B64=$(kv_get android-keystore)
 if [ -z "$B64" ]; then
