@@ -17,7 +17,9 @@ const out = process.argv[2] ?? 'data/out';
 async function main() {
   if (!TOKEN) throw new Error('Falta ADMIN_TOKEN');
   const headers = { 'x-admin-token': TOKEN, 'content-type': 'application/json' };
-  const r = await fetch(`${API}/admin/alarms`, { headers });
+  // Un token recién creado tarda hasta ~60 s en propagarse por el KV de Cloudflare: se reintenta
+  let r = await fetch(`${API}/admin/alarms`, { headers });
+  for (let i = 0; r.status === 403 && i < 6; i++) { await new Promise((ok) => setTimeout(ok, 15000)); r = await fetch(`${API}/admin/alarms`, { headers }); }
   if (r.status === 503) { console.log('Avisos no disponibles todavía (sin base de datos).'); return; }
   if (!r.ok) throw new Error(`admin/alarms ${r.status}`);
   const alarms = (await r.json()) as { subId: string; id: string; def: Omit<Alarm, 'id' | 'on'> }[];
