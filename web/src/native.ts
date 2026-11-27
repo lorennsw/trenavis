@@ -44,10 +44,13 @@ export async function initNative() {
   if (fcmEnabled() && wants && perm.receive === 'granted') PushNotifications.register().catch(() => {});
 }
 
+const startedAt = Date.now();
+/** Oculta la pantalla de carga, pero no antes de ~1 s: si los horarios ya están guardados carga tan rápido que ni se vería. */
 export async function hideSplash() {
   if (!isNative()) return;
   const { SplashScreen } = await import('@capacitor/splash-screen');
-  SplashScreen.hide({ fadeOutDuration: 250 }).catch(() => {});
+  const wait = Math.max(0, 1000 - (Date.now() - startedAt));
+  setTimeout(() => SplashScreen.hide({ fadeOutDuration: 300 }).catch(() => {}), wait);
 }
 
 export async function nativePermission(): Promise<NotificationPermission> {
