@@ -13,7 +13,7 @@ import { t, type Key } from './i18n';
 import { SearchView } from './views/SearchView';
 import { StationView } from './views/StationView';
 import { MoreView } from './views/MoreView';
-import { AlarmsView } from './views/Placeholders';
+import { AlarmsView } from './views/AlarmsView';
 const MapSheet = lazy(() => import('./components/MapSheet')); // Leaflet solo se descarga al abrir el mapa
 import { TrainSheet } from './components/TrainSheet';
 
