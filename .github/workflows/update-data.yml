@@ -16,6 +16,8 @@ jobs:
         with: { node-version: 22 }
       - run: npm ci
       - run: npm test
+      - name: Base de datos D1
+        run: bash tools/ensure-d1.sh
       - name: Desplegar Worker
         run: npx wrangler deploy --config worker/wrangler.toml
       - run: npm run data:build
