@@ -1,5 +1,5 @@
 /* TrenAvís – service worker: muestra los avisos push aunque la app esté cerrada. */
-const SHELL = 'trenavis-shell-v1';
+const SHELL = 'trenavis-shell-v2';
 self.addEventListener('install', (e) => {
   e.waitUntil(caches.open(SHELL).then((c) => c.addAll(['./', 'manifest.webmanifest', 'icon-192.png'])).catch(() => {}));
   self.skipWaiting();
@@ -20,6 +20,10 @@ self.addEventListener('message', (e) => {
 self.addEventListener('fetch', (e) => {
   const req = e.request;
   if (req.method !== 'GET' || new URL(req.url).origin !== self.location.origin) return;
+  const url = new URL(req.url);
+  const scopePath = new URL(self.registration.scope).pathname;
+  const isApp = url.pathname === scopePath || url.pathname === scopePath + 'index.html';
+  if (req.mode === 'navigate' && !isApp) return; // p. ej. páginas legales: red normal
   if (req.mode === 'navigate') {
     e.respondWith(fetch(req).then((r) => { const copy = r.clone(); caches.open(SHELL).then((c) => c.put('./', copy)); return r; })
       .catch(() => caches.match('./')));

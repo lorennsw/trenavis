@@ -25,6 +25,7 @@ export interface AppData {
   setFollow: (f: Follow | null) => void;
   openLine: (lineId: string, dir?: number) => void;
   openMap: (lineId?: string) => void;
+  openLegal: (id: string) => void;
 }
 export const Ctx = createContext<AppData | null>(null);
 export const useApp = () => useContext(Ctx)!;
