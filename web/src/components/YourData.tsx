@@ -27,8 +27,25 @@ export async function deleteEverything() {
   try { for (const r of await navigator.serviceWorker.getRegistrations()) await r.unregister(); } catch { /* */ }
 }
 
+/** Importa un JSON exportado desde TrenAvís. Devuelve cuántos datos se han importado, o -1 si no es válido. */
+export function importData(text: string): number {
+  try {
+    const j = JSON.parse(text) as { app?: string; data?: Record<string, unknown> };
+    if (j.app !== 'TrenAvís' || !j.data || typeof j.data !== 'object') return -1;
+    const skip = new Set(['notif', 'notifSync', 'fcmToken', 'noticeSeen']); // las notificaciones se reactivan en cada dispositivo
+    let n = 0;
+    for (const [k, v] of Object.entries(j.data)) {
+      if (skip.has(k) || !/^[\w-]{1,40}$/.test(k)) continue;
+      localStorage.setItem(PREFIX + k, JSON.stringify(v)); n++;
+    }
+    return n;
+  } catch { return -1; }
+}
+
 export function YourData() {
-  const [view, setView] = useState<'export' | 'delete' | null>(null);
+  const [view, setView] = useState<'export' | 'delete' | 'import' | null>(null);
+  const [importText, setImportText] = useState('');
+  const [importMsg, setImportMsg] = useState('');
   const [copied, setCopied] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const json = JSON.stringify(collectData(), null, 2);
@@ -44,6 +61,7 @@ export function YourData() {
       <h3>{t('data.title')}</h3>
       <div className="menu">
         <button className="mi" onClick={() => setView('export')}>{t('data.export')}</button>
+        <button className="mi" onClick={() => { setView('import'); setImportMsg(''); setImportText(''); }}>{t('data.import')}</button>
         <button className="mi danger-text" onClick={() => setView('delete')}>{t('data.delete')}</button>
       </div>
       {view === 'export' && (
@@ -54,6 +72,21 @@ export function YourData() {
             <button className="btn pri" onClick={async () => { try { await navigator.clipboard.writeText(json); setCopied(true); } catch { setCopied(false); } }}>{copied ? `✓ ${t('data.copied')}` : t('data.copy')}</button>
             <button className="btn" onClick={download}>{t('data.download')}</button>
           </div>
+        </Sheet>
+      )}
+      {view === 'import' && (
+        <Sheet title={t('data.import')} onClose={() => setView(null)}>
+          <p>{t('data.importInfo')}</p>
+          <label className="f" htmlFor="imp">{t('data.importLabel')}</label>
+          <textarea id="imp" className="imp" rows={8} value={importText} onChange={(e) => setImportText(e.target.value)} spellCheck={false} />
+          <div className="filters actions">
+            <button className="btn pri" disabled={!importText.trim()} onClick={() => {
+              const n = importData(importText);
+              if (n < 0) setImportMsg(t('data.importBad'));
+              else { setImportMsg(t('data.importOk', { n })); setTimeout(() => location.reload(), 900); }
+            }}>{t('data.importGo')}</button>
+          </div>
+          <p className="hint" role="status">{importMsg}</p>
         </Sheet>
       )}
       {view === 'delete' && (

@@ -40,3 +40,17 @@ describe('aplicar municipios de OSM', () => {
     expect(st[1]).toMatchObject({ town: 'X', prov: 'Lleida' });
   });
 });
+
+import { importData } from '../web/src/components/YourData';
+describe('importar datos', () => {
+  it('importa una exportación válida y omite notificaciones', () => {
+    const store = new Map<string, string>();
+    (globalThis as any).localStorage = { setItem: (k: string, v: string) => store.set(k, v), getItem: (k: string) => store.get(k) ?? null };
+    const n = importData(JSON.stringify({ app: 'TrenAvís', data: { favorites: ['71500'], alarms: [{ id: 'a1' }], notif: { follow: true }, 'mal clave!': 1 } }));
+    expect(n).toBe(2);
+    expect(store.get('trenavis:favorites')).toBe('["71500"]');
+    expect(store.has('trenavis:notif')).toBe(false);
+    expect(importData('{"app":"Otra"}')).toBe(-1);
+    expect(importData('no es json')).toBe(-1);
+  });
+});
