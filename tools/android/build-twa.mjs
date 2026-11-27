@@ -4,7 +4,7 @@
  * Uso: node tools/android/build-twa.mjs <versionCode>
  */
 import { TwaManifest, TwaGenerator, ConsoleLog, Config, JdkHelper, AndroidSdkTools, GradleWrapper, JarSigner } from '@bubblewrap/core';
-import { mkdirSync, copyFileSync, existsSync } from 'node:fs';
+import { mkdirSync, existsSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
 const ORIGIN = 'https://trenavis.lorennsw.workers.dev';
@@ -44,5 +44,4 @@ await sdk.apksigner(keystore, pass, 'trenavis', pass, aligned, join(out, `trenav
 
 await gradle.bundleRelease();
 await new JarSigner(jdk).sign({ path: keystore, alias: 'trenavis' }, pass, pass, join(dir, 'app/build/outputs/bundle/release/app-release.aab'), join(out, `trenavis-${code}.aab`));
-copyFileSync(join(dir, 'twa-manifest.json'), join(out, 'twa-manifest.json'));
 console.log(`OK: android-out/trenavis-${code}.apk y .aab`);
