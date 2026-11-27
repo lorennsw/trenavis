@@ -72,6 +72,11 @@ export async function syncPush(payload: SyncPayload): Promise<boolean> {
   } catch { return false; }
 }
 
+/** ¿El servidor tiene los avisos activos? (sin base de datos responde 503) */
+export async function serverReady(): Promise<boolean> {
+  try { return (await fetch(`${API}/push/key`)).ok; } catch { return false; }
+}
+
 /** Aviso de prueba local (sin servidor) para comprobar que el permiso funciona. */
 export async function testNotification(title: string, body: string) {
   const reg = await registerSW();

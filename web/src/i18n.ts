@@ -96,6 +96,7 @@ const es = {
   'notif.allOff': 'Avisos desactivados: se han borrado tus datos de avisos del servidor.',
   'notif.syncFail': 'No se ha podido guardar la configuración de avisos en el servidor. Se reintentará al abrir la app.',
   'notif.privacy': 'Para que los avisos lleguen con la app cerrada, el servidor guarda solo la suscripción técnica de este dispositivo, el trayecto, días y horas de tus alarmas y el tren que sigues. Nada que te identifique. Se borra al desactivar los avisos.',
+  'notif.serverOff': 'Los avisos con la app cerrada todavía no están disponibles. Mientras tanto, la hora de salir y el estado de tu tren se ven en la app.',
   'notif.unsupported': 'Este navegador no admite avisos push. Prueba con Chrome, Edge, Firefox o Safari actualizado.',
   'notif.iosInstall': 'En iPhone, los avisos solo funcionan si instalas TrenAvís en la pantalla de inicio (iOS 16.4 o superior).',
   'notif.howInstall': 'Cómo instalar la app', 'notif.iosNote': 'En iPhone los avisos solo llegan si la app está instalada y la abres desde el icono. Si cambias de móvil o borras la app, vuelve a activarlos.',

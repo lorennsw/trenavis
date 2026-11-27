@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { usePersisted } from '../store';
-import { isIOS, isStandalone, NO_PREFS, permission, pushSupported, subscribe, testNotification, unsubscribeAll, type NotifPrefs } from '../push';
+import { isIOS, isStandalone, NO_PREFS, permission, pushSupported, serverReady, subscribe, testNotification, unsubscribeAll, type NotifPrefs } from '../push';
 import { t } from '../i18n';
 import { Sheet } from './Sheet';
 
@@ -12,6 +12,8 @@ export function NotificationsSettings() {
   const [msg, setMsg] = useState('');
   const [guide, setGuide] = useState(false);
   const [syncOk, setSyncOk] = useState<boolean | null>(null);
+  const [server, setServer] = useState<boolean | null>(null);
+  useEffect(() => { serverReady().then(setServer); }, []);
   useEffect(() => { const on = (e: Event) => setSyncOk((e as CustomEvent).detail); addEventListener('trenavis-sync', on); return () => removeEventListener('trenavis-sync', on); }, []);
 
   const iosNeedsInstall = isIOS() && !isStandalone();
@@ -37,7 +39,9 @@ export function NotificationsSettings() {
   return (
     <>
       <h3>{t('notif.title')}</h3>
-      {!supported ? (
+      {server === false ? (
+        <div className="info"><p style={{ margin: 0 }}>{t('notif.serverOff')}</p></div>
+      ) : !supported ? (
         <div className="info">
           <p style={{ margin: 0 }}>{iosNeedsInstall ? t('notif.iosInstall') : t('notif.unsupported')}</p>
           <button className="btn sm" style={{ marginTop: 10 }} onClick={() => setGuide(true)}>{t('notif.howInstall')}</button>
