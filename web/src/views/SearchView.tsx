@@ -133,7 +133,7 @@ function JourneyCard({ j, sts, ds, risk, canceled, date, from, to, name, openTra
   return (
     <article className={`res${canceled ? ' can' : ''}`} aria-label={`${fmt(j.dep)} → ${fmt(j.arr)}, ${duration(j.arr - j.dep)}, ${j.transfers ? t('search.transfer') : t('search.direct')}`}>
       <div className="top">
-        <div className="tms">{ds[0] > 0 ? <span className="tm"><span className="strike small">{fmt(j.dep)}</span> <span className="real">{fmt(j.dep + ds[0])}</span></span> : <span className="tm">{fmt(j.dep)}</span>}<span aria-hidden="true">→</span>{ds[ds.length - 1] > 0 ? <span className="tm real">{fmt(j.arr + ds[ds.length - 1])}</span> : <span className="tm">{fmt(j.arr)}</span>}</div>
+        <div className="tms">{ds[0] > 0 ? <span className="tm"><span className="strike small"><span className="sr">{t('time.planned')} </span>{fmt(j.dep)}</span> <span className="real"><span className="sr">{t('time.real')} </span>{fmt(j.dep + ds[0])}</span></span> : <span className="tm">{fmt(j.dep)}</span>}<span aria-hidden="true">→</span>{ds[ds.length - 1] > 0 ? <span className="tm real">{fmt(j.arr + ds[ds.length - 1])}</span> : <span className="tm">{fmt(j.arr)}</span>}</div>
         <span className="dur">{duration(j.arr + ds[ds.length - 1] - j.dep - ds[0])}</span>
       </div>
       <div className="meta">

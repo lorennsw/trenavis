@@ -243,7 +243,7 @@ details.alerts summary{min-height:44px;display:flex;align-items:center;font-weig
 details.alerts .alertbox{border:0;padding:6px 0;margin:0 0 8px}
 .ptm .strike{display:block;font-size:.875rem}
 .res .meta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.res.can{opacity:.75}
+.res.can{border-style:dashed}
 .res.can .tms .tm{text-decoration:line-through}
 .strike.small{font-size:.9375rem}
 .warnline{margin:10px 0 0;color:var(--red);font-weight:600;font-size:.875rem}

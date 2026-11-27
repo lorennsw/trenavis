@@ -67,12 +67,11 @@ export function StationView() {
                   const via = platforms[platformKey(r.run, station)!];
                   return (
                     <button key={r.run.key} className={`prow${r.st.kind === 'canceled' ? ' can' : ''}`}
-                      aria-label={`${fmt(r.time)}, ${r.run.trip.l}, ${mode === 'dep' ? t('station.toDest') : t('station.fromOrig')} ${other}, ${t('common.train', { n: r.run.num })}, ${r.st.kind === 'late' ? t('status.lateLong', { m: r.delay }) : r.st.kind === 'canceled' ? t('status.canceled') : r.st.kind === 'ontime' ? t('status.ontime') : t('status.scheduled')}${via ? `, ${t('platform.yours', { v: via })}` : ''}`}
                       onClick={() => openTrain(r.run, now.date, mode === 'dep' ? station : undefined, mode === 'arr' ? station : undefined)}>
-                      <span className="ptm">{r.delay > 0 ? <><span className="strike">{fmt(r.time)}</span><span className="real">{fmt(r.time + r.delay)}</span></> : fmt(r.time)}</span>
-                      <span className="pdst"><b>{other}</b><small>{t('common.train', { n: r.run.num })} · <StatusLabel s={r.st} /></small></span>
+                      <span className="ptm">{r.delay > 0 ? <><span className="strike"><span className="sr">{t('time.planned')} </span>{fmt(r.time)}</span><span className="real"><span className="sr">{t('time.real')} </span>{fmt(r.time + r.delay)}</span></> : fmt(r.time)}</span>
+                      <span className="pdst"><b><span className="sr">{mode === 'dep' ? t('station.toDest') : t('station.fromOrig')}: </span>{other}</b><small>{t('common.train', { n: r.run.num })} · <StatusLabel s={r.st} /></small></span>
                       <LineBadge id={r.run.trip.l} />
-                      <span className={`pvia${via ? ' set' : ''}`}>{via ? <><b>{via}</b><small>{t('platform.note')}</small></> : '–'}</span>
+                      <span className={`pvia${via ? ' set' : ''}`}>{via ? <><span className="sr">{t('station.col.platform')} </span><b>{via}</b><small>{t('platform.note')}</small></> : <span aria-hidden="true">–</span>}</span>
                     </button>
                   );
                 })}

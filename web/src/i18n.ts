@@ -65,6 +65,7 @@ const es = {
   'platform.appliesEnd': 'Se aplicará a todos los trenes {l} que terminan en esta estación llegando desde {n}.',
   'platform.save': 'Guardar', 'platform.delete': 'Borrar nota', 'platform.saved': 'Guardado: vía {v}.',
   'platform.privacy': 'Se guarda solo en este móvil. Las vías pueden cambiar: comprueba siempre los paneles de la estación.',
+  'time.planned': 'prevista', 'time.real': 'real',
   'status.ontime': 'A su hora', 'status.late': '+{m} min', 'status.lateLong': '{m} min de retraso', 'status.canceled': 'Cancelado',
   'status.scheduled': 'Según horario', 'status.nodata': 'Sin datos en tiempo real', 'status.skipped': 'No para aquí',
   'rt.stale': 'Sin datos en tiempo real ahora mismo: se muestran los horarios previstos.',
