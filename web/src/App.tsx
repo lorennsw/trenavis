@@ -7,6 +7,8 @@ import { MyTrainView } from './views/MyTrainView';
 import { usePushSync } from './usePushSync';
 import { registerSW } from './push';
 import { InstallBanner } from './components/InstallBanner';
+import { LegalSheet } from './components/LegalSheet';
+import { StorageNotice } from './components/StorageNotice';
 import { Ctx, type AppData, type Follow } from './context';
 import { compareLines } from './core/lines';
 import { madridNow, fmt } from './core/time';
@@ -67,6 +69,8 @@ export function App() {
   const [tab, setTab] = useState<TabId>(() => tabFromHash(followActive ? 'mitren' : 'buscar'));
   const [lineSheet, setLineSheet] = useState<{ id: string; dir: number } | null>(null);
   const [mapSheet, setMapSheet] = useState<{ line?: string } | null>(null);
+  // #legal/privacidad abre esa página legal (enlaces compartibles)
+  const [legal, setLegal] = useState<string | null>(() => /^#legal\/([\w-]+)$/.exec(location.hash)?.[1] ?? null);
   const [train, setTrain] = useState<{ run: Run; date: string; from?: string; to?: string } | null>(null);
   const [favorites, setFavorites] = usePersisted<string[]>('favorites', []);
   const [platforms, setPlatforms] = usePersisted<Record<string, string>>('platforms', {});
@@ -80,7 +84,7 @@ export function App() {
   useEffect(() => { if (follow && !followActive) setFollowRaw(null); }, [follow, followActive, setFollowRaw]); // borrado automático a las 24 h
 
   useEffect(() => {
-    const on = () => setTab(tabFromHash(followActive ? 'mitren' : 'buscar'));
+    const on = () => { const m = /^#legal\/([\w-]+)$/.exec(location.hash); if (m) { setLegal(m[1]); return; } setTab(tabFromHash(followActive ? 'mitren' : 'buscar')); };
     addEventListener('hashchange', on);
     return () => removeEventListener('hashchange', on);
   }, [followActive]);
@@ -112,6 +116,7 @@ export function App() {
       setFollow: (f) => setFollowRaw(f),
       openLine: (id, dir = 0) => { setTrain(null); setLineSheet({ id, dir }); },
       openMap: (line) => { setTrain(null); setLineSheet(null); setMapSheet({ line }); },
+      openLegal: (id) => setLegal(id),
     };
   }, [state, favorites, setFavorites, platforms, setPlatforms, now, rt, followActive, setFollowRaw]);
 
@@ -147,6 +152,8 @@ export function App() {
         )}
       </main>
 
+      <StorageNotice onRead={() => setLegal('privacidad')} />
+      {legal && <LegalSheet id={legal} onOpen={setLegal} onClose={() => { setLegal(null); if (location.hash.startsWith('#legal/')) history.replaceState(null, '', `#${tab}`); }} />}
       <nav className="tabs" aria-label={t('tabs.label')}><div className="in">
         {TABS.map((x) => (
           <a key={x.id} href={`#${x.id}`} aria-current={x.id === tab ? 'page' : undefined}>

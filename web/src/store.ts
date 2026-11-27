@@ -1,5 +1,5 @@
 /** Preferencias guardadas solo en este dispositivo (localStorage). Nunca rompe si el almacenamiento falla. */
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const PREFIX = 'trenavis:';
 
@@ -16,6 +16,8 @@ export function save(key: string, value: unknown) {
 
 export function usePersisted<T>(key: string, fallback: T): [T, (v: T | ((p: T) => T)) => void] {
   const [v, setV] = useState<T>(() => load(key, fallback));
-  useEffect(() => save(key, v), [key, v]);
+  const first = useRef(true);
+  // No se guarda al montar: solo cuando el usuario cambia algo (así no se crean datos vacíos por defecto)
+  useEffect(() => { if (first.current) { first.current = false; return; } save(key, v); }, [key, v]);
   return [v, setV];
 }

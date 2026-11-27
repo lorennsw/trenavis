@@ -11,7 +11,7 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit && tsc --noEmit -p web",
     "dev": "vite --config web/vite.config.ts",
-    "build": "vite build --config web/vite.config.ts",
+    "build": "vite build --config web/vite.config.ts && tsx tools/build-legal.ts dist",
     "preview": "vite preview --config web/vite.config.ts"
   },
   "devDependencies": {

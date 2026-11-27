@@ -6,11 +6,13 @@ import { t, type Key } from '../i18n';
 import { LineBadge } from '../components/LineBadge';
 import { NotificationsSettings } from '../components/NotificationsSettings';
 import { ThemeSetting } from '../components/ThemeSetting';
+import { YourData } from '../components/YourData';
+import { LEGAL } from '../legal/content';
 
 const ymd = (s: string) => `${s.slice(6, 8)}/${s.slice(4, 6)}/${s.slice(0, 4)}`;
 
 export function MoreView() {
-  const { tt, meta, lineIds, rt, now, openLine, openMap } = useApp();
+  const { tt, meta, lineIds, rt, now, openLine, openMap, openLegal } = useApp();
   const runs = useMemo(() => runsOn(tt, now.date), [tt, now.date]);
   const name = (id: string) => tt.stations.get(id)?.name ?? id;
   return (
@@ -44,6 +46,9 @@ export function MoreView() {
         <h4>{t('more.known')}</h4>
         <ul>{t('more.known.list').split('|').map((x) => <li key={x}>{x}</li>)}</ul>
       </div>
+      <h3>{t('legal.title')}</h3>
+      <div className="menu">{LEGAL.map((d) => <button key={d.id} className="mi" onClick={() => openLegal(d.id)}>{d.title}</button>)}</div>
+      <YourData />
       <p className="note">{t('more.free')} {t('more.unofficial')}</p>
     </>
   );

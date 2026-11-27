@@ -298,3 +298,13 @@ details.alerts .alertbox{border:0;padding:6px 0;margin:0 0 8px}
 .installbar img{border-radius:10px;flex:none}
 .installbar div{flex:1;display:flex;flex-direction:column;line-height:1.25}
 .installbar small{color:var(--mut);font-size:.8125rem}
+/* Legal, tus datos y aviso inicial */
+.menu .mi{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:52px;border:0;border-bottom:1px solid var(--line);background:none;color:inherit;font:inherit;font-weight:500;cursor:pointer;padding:0 2px;text-align:left}
+.menu .mi::after{content:"›";color:var(--mut);font-size:1.375rem}
+.menu .mi.danger-text{color:var(--red)}
+.legal h4{margin:18px 0 4px;font-size:1rem}.legal p,.legal li{font-size:.9375rem;line-height:1.55}.legal ul{padding-left:20px}
+.legal a{color:var(--co2)}
+pre.json{max-height:40vh;overflow:auto;background:var(--zone);border-radius:12px;padding:12px;font-size:.75rem;white-space:pre-wrap;word-break:break-word}
+.notice{position:fixed;left:8px;right:8px;bottom:calc(66px + env(safe-area-inset-bottom));max-width:584px;margin:0 auto;background:var(--bg);border:1px solid var(--line);border-radius:16px;padding:14px;z-index:8;box-shadow:0 10px 30px rgb(0 0 0/.18);font-size:.875rem}
+.notice p{margin:0 0 10px}.notice .filters{margin:0;justify-content:flex-end}
+.btn.pri.sm{background:var(--co);color:#fff;border-color:var(--co)}
