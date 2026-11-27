@@ -1,0 +1,21 @@
+name: Publicar web en Cloudflare (trenavis.lorennsw.workers.dev)
+on:
+  push:
+    branches: [main, ccr-678091cb-mlaxyu]
+    paths: ['web/**', 'shared/**', 'app-host/**', 'tools/build-*.ts', 'package.json', 'package-lock.json', '.github/workflows/app-host.yml']
+  workflow_dispatch:
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with: { node-version: 22 }
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+        env: { BASE_PATH: / }
+      - name: Desplegar
+        run: npx wrangler deploy --config app-host/wrangler.toml
